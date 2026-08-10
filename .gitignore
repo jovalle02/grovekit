@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# per-worktree runtime state
+.wt/

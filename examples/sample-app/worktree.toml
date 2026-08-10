@@ -1,0 +1,42 @@
+[project]
+name = "sample-app"
+compose = ["docker-compose.yml", "docker-compose.worktree.yml"]
+
+[domain]
+suffix = "localtest.me"
+
+[proxy]
+# 80 gives the cleanest URLs, but Docker Desktop on Windows often holds it even
+# with no containers running. Any port works; URLs then carry it.
+port = 8081
+
+[[services]]
+name = "web"
+layer = "frontend"
+subdomain = "web"
+port = 3000
+health = "/healthz"
+
+[[services]]
+name = "api"
+layer = "backend"
+subdomain = "api"
+port = 4000
+health = "/healthz"
+
+[[services]]
+name = "db"
+layer = "data"
+host_port = true
+health = { exec = ["pg_isready", "-U", "app"] }
+
+[groups]
+backend = ["api", "db"]
+frontend = ["web", "api", "db"]
+
+# Interpolated against the vars `wt run` injects (WT_HOST_DB is `localhost:<lease>`).
+[env]
+DATABASE_URL = "postgres://app:app@${WT_HOST_DB}/app"
+
+[commands]
+e2e = "node e2e.mjs"

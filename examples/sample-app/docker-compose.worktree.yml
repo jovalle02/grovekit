@@ -1,0 +1,58 @@
+# Applied on top of docker-compose.yml. The base file is never modified, so plain
+# `docker compose up` still works for anyone not using worktrees.
+#
+#   ports: !reset []   cancels the base file's published ports (Compose >= 2.24)
+#   *.internal alias   unambiguous name for sibling calls; a bare `api` is
+#                      ambiguous on the shared proxy network, where every
+#                      worktree has one.
+services:
+  web:
+    ports: !reset []
+    environment:
+      API_URL: http://api.internal:4000
+      WT_NAME: ${WT_NAME}
+    networks:
+      internal:
+        aliases:
+          - web.internal
+      wt-proxy: {}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.${WT_NAME}-web.rule=Host(`web.${WT_NAME}.${WT_DOMAIN}`)
+      - traefik.http.services.${WT_NAME}-web.loadbalancer.server.port=3000
+      - wt.managed=true
+
+  api:
+    ports: !reset []
+    environment:
+      WT_NAME: ${WT_NAME}
+    networks:
+      internal:
+        aliases:
+          - api.internal
+      wt-proxy: {}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.${WT_NAME}-api.rule=Host(`api.${WT_NAME}.${WT_DOMAIN}`)
+      - traefik.http.services.${WT_NAME}-api.loadbalancer.server.port=4000
+      - wt.managed=true
+
+  db:
+    # Not HTTP, so the proxy can't front it — it keeps a real host port, leased
+    # per worktree instead of hardcoded to 5432.
+    #
+    # !override, NOT !reset. `!reset` erases the key and ignores any value you
+    # give it, so `ports: !reset ["..."]` silently publishes nothing — and then
+    # WT_HOST_DB advertises an address with no listener behind it.
+    ports: !override
+      - "${WT_PORT_DB}:5432"
+    networks:
+      - internal
+    labels:
+      - wt.managed=true
+
+networks:
+  internal:
+  wt-proxy:
+    external: true
+    name: ${WT_PROXY_NETWORK}

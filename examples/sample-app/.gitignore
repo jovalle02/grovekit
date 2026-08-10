@@ -1,0 +1,3 @@
+# Per-worktree runtime state. Committing this makes a new worktree inherit
+# another worktree's identity, which points its commands at the wrong containers.
+.wt/

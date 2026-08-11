@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "project": "sample-app",
+  "domain": "localtest.me",
+  "proxyPort": 8081,
+  "composeFiles": ["docker-compose.yml"],
+  "services": [
+    {
+      "name": "api",
+      "kind": "http",
+      "layer": "backend",
+      "subdomain": "api",
+      "containerPort": 4000,
+      "hostPort": false,
+      "health": "/healthz",
+      "envRewrites": {},
+      "evidence": "listens on 4000 and is built from source",
+      "confidence": "medium"
+    },
+    {
+      "name": "db",
+      "kind": "tcp",
+      "layer": "data",
+      "subdomain": null,
+      "containerPort": 5432,
+      "hostPort": true,
+      "health": { "exec": ["pg_isready", "-U", "app"] },
+      "envRewrites": {},
+      "database": { "scheme": "postgres", "user": "app", "password": "app", "name": "app" },
+      "evidence": "image postgres:16-alpine matches a known data service",
+      "confidence": "high"
+    },
+    {
+      "name": "web",
+      "kind": "http",
+      "layer": "frontend",
+      "subdomain": "web",
+      "containerPort": 3000,
+      "hostPort": false,
+      "health": "/healthz",
+      "envRewrites": {
+        "API_URL": "http://api.internal:4000",
+        "NEXT_PUBLIC_API_URL": "http://api.${WT_NAME}.${WT_DOMAIN}:8081"
+      },
+      "evidence": "listens on 3000 and is built from source",
+      "confidence": "medium"
+    }
+  ],
+  "review": ["web: assumed HTTP and given a URL, dropping its published port"]
+}

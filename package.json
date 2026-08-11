@@ -19,7 +19,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "node --import tsx --test test/index.ts",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

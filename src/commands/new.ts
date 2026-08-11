@@ -5,6 +5,7 @@ import {
   addWorktree,
   branchExists,
   defaultBaseRef,
+  deleteBranch,
   mainWorktree,
   refExists,
   removeWorktree,
@@ -132,7 +133,7 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
       });
     }
   } catch (err) {
-    await rollback(here, dest, (await readState(dest))?.slug ?? null);
+    await rollback(here, dest, (await readState(dest))?.slug ?? null, reuseBranch ? null : branch);
     fail(
       {
         ok: false,
@@ -177,7 +178,13 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
  * means the next `wt new` on the same branch gets a different port for no
  * reason, and `wt ls` shows a worktree that is not there.
  */
-async function rollback(repo: string, dest: string, slug: string | null): Promise<void> {
+async function rollback(
+  repo: string,
+  dest: string,
+  slug: string | null,
+  /** Only set when this invocation created it — never delete a pre-existing branch. */
+  branch: string | null,
+): Promise<void> {
   try {
     await removeWorktree(repo, dest, true);
   } catch {
@@ -185,6 +192,13 @@ async function rollback(repo: string, dest: string, slug: string | null): Promis
   }
   await unregister(dest).catch(() => {});
   if (slug) await releaseLeases(slug).catch(() => {});
+
+  // `git worktree add -b` created the branch, so rolling back has to drop it
+  // too. Leaving it behind makes the obvious retry do something *different* and
+  // worse: the branch now exists, so the second run checks it out instead of
+  // creating it, inheriting whatever the first run based it on — and the error
+  // it then reports is about the consequence, not the cause.
+  if (branch) await deleteBranch(repo, branch, true).catch(() => {});
 }
 
 /** Shared by `wt hydrate`, which re-runs the same logic on an existing worktree. */

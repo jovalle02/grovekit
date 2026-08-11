@@ -197,6 +197,11 @@ describe("wt new", () => {
 
     const list = await git(repo, ["worktree", "list", "--porcelain"]);
     assert.doesNotMatch(list, /feat-doomed/);
+
+    // The branch has to go too. Leaving it makes the obvious retry do something
+    // different and worse: the branch now exists, so the second run checks it
+    // out instead of creating it, inheriting the first run's base.
+    assert.equal((await git(repo, ["branch", "--list", "feat/doomed"])).trim(), "");
   });
 });
 

@@ -29,9 +29,27 @@ export type HealthCheck =
   /** No check — ready as soon as Compose reports the container running. */
   | { kind: "none" };
 
+/**
+ * Who runs the process.
+ *
+ * `compose` is a container this tool starts and stops. `host` is a process it
+ * does not run at all — an orchestrator, a `the run command`, a dev server you
+ * start in your own terminal. For those, the only thing `wt` can usefully own is
+ * the port, which it leases and then hands back through `[render]` and the
+ * injected environment.
+ *
+ * This is what makes the tool useful to a stack that is not containerised: the
+ * proxy trick needs a Docker network to hide identical ports inside, and a host
+ * process has none. Leasing a distinct port per worktree is the fallback, and it
+ * is the whole of what such a stack actually needs.
+ */
+export type ServiceRuntime = "compose" | "host";
+
 export interface ServiceConfig {
   name: string;
   layer: Layer;
+  /** Defaults to `compose`. */
+  runtime: ServiceRuntime;
   /** Present => the service gets a Traefik route at `<subdomain>.<slug>.<domain>`. */
   subdomain?: string;
   /** Port the process listens on inside the container. */
@@ -83,6 +101,17 @@ export interface Config {
   healthTimeoutMs: number;
   hydrate: HydrateConfig;
   hooks: HooksConfig;
+  /**
+   * Files written from this worktree's environment, keyed by path relative to the
+   * worktree root.
+   *
+   * The counterpart to `host` services: leasing a port is only useful if the
+   * process that needs it can find out what it got. Most non-containerised
+   * stacks already read a local config file — an orchestrator reads
+   * `the generated config`, a Vite app reads `.env.local` — so rendering that
+   * one file per worktree is the whole integration.
+   */
+  render: Record<string, string>;
 }
 
 /** `.wt/state.json` — identity of this worktree, written once and then stable. */
@@ -101,6 +130,8 @@ export interface WorktreeState {
 export interface ManifestService {
   name: string;
   layer: Layer;
+  /** `host` services are not started or stopped by this tool — see ServiceRuntime. */
+  runtime: ServiceRuntime;
   status: ServiceStatus;
   /** External URL through the proxy, or null for services with no ingress. */
   url: string | null;
@@ -127,6 +158,11 @@ export interface Manifest {
   apiUrl: string | null;
   services: ManifestService[];
   commands: Record<string, string>;
+  /**
+   * Files written from `[render]`, relative to the worktree root. Additive to
+   * schema 1: a consumer that does not know about it is unaffected.
+   */
+  rendered: string[];
   updatedAt: string;
 }
 

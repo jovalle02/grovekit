@@ -8,6 +8,7 @@ import type {
   HydrateConfig,
   Layer,
   ServiceConfig,
+  ServiceRuntime,
 } from "../types.js";
 
 export const CONFIG_FILENAMES = ["worktree.toml", ".worktree.toml"];
@@ -111,7 +112,22 @@ export async function loadConfig(root: string): Promise<Config> {
     healthTimeoutMs,
     hydrate: parseHydrate(raw.hydrate),
     hooks: parseHooks(raw.hooks),
+    render: parseRender(raw.render),
   };
+}
+
+function parseRender(value: unknown): Record<string, string> {
+  if (value === undefined) return {};
+  const out: Record<string, string> = {};
+  for (const [file, template] of Object.entries(obj(value, "render"))) {
+    if (path.isAbsolute(file) || file.split(/[\\/]/).includes("..")) {
+      throw new ConfigError(
+        `render."${file}" must be a path inside the worktree — no absolute paths, no "..".`,
+      );
+    }
+    out[file] = str(template, `render."${file}"`);
+  }
+  return out;
 }
 
 function parseHydrate(value: unknown): HydrateConfig {
@@ -168,15 +184,52 @@ function parseServices(value: unknown): ServiceConfig[] {
       );
     }
 
+    const runtimeRaw = svc.runtime === undefined ? "compose" : str(svc.runtime, `services[${i}].runtime`);
+    if (runtimeRaw !== "compose" && runtimeRaw !== "host") {
+      throw new ConfigError(
+        `services[${i}].runtime must be "compose" or "host" (got "${runtimeRaw}").`,
+      );
+    }
+    const runtime = runtimeRaw as ServiceRuntime;
+
     const config: ServiceConfig = {
       name,
       layer: layerRaw as Layer,
+      runtime,
       health: parseHealth(svc.health, `services[${i}].health`),
     };
 
     if (svc.subdomain !== undefined) config.subdomain = str(svc.subdomain, `services[${i}].subdomain`);
     if (svc.port !== undefined) config.port = num(svc.port, `services[${i}].port`);
     if (svc.host_port !== undefined) config.hostPort = bool(svc.host_port, `services[${i}].host_port`);
+
+    if (runtime === "host") {
+      // A host process has no container and no Docker network, so the two things
+      // the proxy needs — a route to a container, and an internal address space
+      // to hide identical ports in — do not exist. All it can have is a leased
+      // port, which is therefore implied rather than configured.
+      config.hostPort = true;
+
+      if (config.subdomain) {
+        throw new ConfigError(
+          `services[${i}] ("${name}") is runtime = "host" and cannot have a subdomain: the proxy ` +
+            `routes to containers, and there is no container here. Reach it on its leased port ` +
+            `instead — WT_PORT_${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}.`,
+        );
+      }
+      if (config.port !== undefined) {
+        throw new ConfigError(
+          `services[${i}] ("${name}") is runtime = "host", so \`port\` has no meaning — that is the ` +
+            `container port the proxy forwards to. The host port is leased, not chosen.`,
+        );
+      }
+      if (config.health.kind === "http" || config.health.kind === "exec") {
+        throw new ConfigError(
+          `services[${i}] ("${name}") is runtime = "host", so health must be { tcp = true } or ` +
+            `omitted. There is no container to exec in, and no proxy URL to request.`,
+        );
+      }
+    }
 
     if (config.health.kind === "http" && !config.subdomain) {
       throw new ConfigError(

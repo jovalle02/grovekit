@@ -673,3 +673,25 @@ describe("cli", () => {
     assert.match(result.stdout, /every git worktree gets its own stack/);
   });
 });
+
+describe("wt new default base", () => {
+  it("branches from where you are standing, like git switch -c", async () => {
+    // Found on a real repo: the config enabling this tool lived on a feature
+    // branch, `wt new` branched from main instead, and the new worktree had no
+    // worktree.toml at all.
+    const repo = await makeRepo("new-base");
+    await git(repo, ["checkout", "-q", "-b", "enablement"]);
+    await write(path.join(repo, "MARKER.txt"), "only on enablement");
+    await git(repo, ["add", "-A"]);
+    await git(repo, ["commit", "-qm", "marker"]);
+
+    const result = await runCli(["new", "feat/from-here", "--no-up", "--json"], {
+      cwd: repo,
+      home: await home(),
+    });
+
+    const payload = result.json<{ worktree: { root: string; base: string } }>();
+    assert.equal(payload.worktree.base, "enablement");
+    assert.equal(await pathExists(path.join(payload.worktree.root, "MARKER.txt")), true);
+  });
+});

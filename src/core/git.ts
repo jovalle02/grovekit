@@ -89,13 +89,24 @@ export async function refExists(cwd: string, ref: string): Promise<boolean> {
   return code === 0;
 }
 
-/** `main` if it exists, else `master`, else whatever HEAD points at. */
+/**
+ * Where a new branch starts when `--from` is not given: HEAD, the same as
+ * `git switch -c` and `git worktree add -b`.
+ *
+ * This used to prefer `main`, on the theory that new work starts from the
+ * trunk. Using it on a real repo showed why that is wrong: the config enabling
+ * this tool was on a feature branch, `wt new` branched from `main` instead, and
+ * the new worktree had no worktree.toml at all. Silently ignoring the branch
+ * someone is standing on is surprising in a way "branch from here" never is,
+ * and `--from main` says the other thing in five characters.
+ */
 export async function defaultBaseRef(cwd: string): Promise<string> {
-  for (const candidate of ["main", "master"]) {
-    if (await branchExists(cwd, candidate)) return candidate;
-  }
   const { stdout } = await execOrThrow("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd });
-  return stdout.trim();
+  const branch = stdout.trim();
+  // Detached HEAD has no branch name to hand `git worktree add`; the sha does.
+  if (branch !== "HEAD") return branch;
+  const { stdout: sha } = await execOrThrow("git", ["rev-parse", "HEAD"], { cwd });
+  return sha.trim();
 }
 
 export async function addWorktree(

@@ -6,6 +6,7 @@ import { c, fail, printJson, printManifest } from "../core/output.js";
 import { leasePort } from "../core/ports.js";
 import { ensureProxy } from "../core/proxy.js";
 import { envKey } from "../core/naming.js";
+import type { Manifest } from "../types.js";
 
 export interface UpOptions {
   json: boolean;
@@ -13,14 +14,18 @@ export interface UpOptions {
   build: boolean;
   noDeps: boolean;
   timeoutMs?: number;
+  /** Worktree to act on. Defaults to the process cwd; `wt new` passes the new one. */
+  cwd?: string;
+  /** Return the manifest instead of printing it. Used when `up` is a sub-step. */
+  quiet?: boolean;
 }
 
 /**
  * Idempotent. Re-running against a live stack is a no-op plus a fresh manifest,
  * which is what makes it safe for an agent to call whenever it is unsure.
  */
-export async function up(opts: UpOptions): Promise<void> {
-  const ctx = await loadContext();
+export async function up(opts: UpOptions): Promise<Manifest> {
+  const ctx = await loadContext(opts.cwd);
   const selection = resolveSelection(ctx, opts.services);
 
   await ensureProxy(ctx.config);
@@ -32,7 +37,7 @@ export async function up(opts: UpOptions): Promise<void> {
   // Empty selection means "everything"; passing no names is how Compose says that.
   if (opts.services.length > 0) args.push(...selection);
 
-  const result = await compose(ctx, args, !opts.json);
+  const result = await compose(ctx, args, !opts.json && !opts.quiet);
   if (result.code !== 0) {
     fail(
       {
@@ -47,7 +52,7 @@ export async function up(opts: UpOptions): Promise<void> {
 
   const runtime = buildRuntime(ctx, await composePs(ctx));
 
-  if (!opts.json) {
+  if (!opts.json && !opts.quiet) {
     const pending = runtime.filter((s) => s.status === "starting").map((s) => s.config.name);
     if (pending.length > 0) console.log(c.dim(`waiting for ${pending.join(", ")}…`));
   }
@@ -55,11 +60,13 @@ export async function up(opts: UpOptions): Promise<void> {
   const { ok } = await waitReady(ctx, runtime, opts.timeoutMs ?? ctx.config.healthTimeoutMs);
   const manifest = await writeManifest(ctx, buildManifest(ctx, runtime));
 
-  if (opts.json) printJson(manifest);
-  else printManifest(manifest);
-
   // Non-zero on failure: agents and CI branch on this, not on parsing the output.
   if (!ok) process.exitCode = 1;
+
+  if (opts.quiet) return manifest;
+  if (opts.json) printJson(manifest);
+  else printManifest(manifest);
+  return manifest;
 }
 
 /** Only services declaring `host_port` consume a lease. */

@@ -1,9 +1,11 @@
 import dns from "node:dns/promises";
+import { resolveBin } from "../core/bin.js";
 import { composeConfig } from "../core/compose.js";
 import { loadContext } from "../core/context.js";
 import { exec } from "../core/exec.js";
 import { c, printJson } from "../core/output.js";
 import { dockerCanPublish, findBindableProxyPort } from "../core/ports.js";
+import { isGitIgnored } from "../core/render.js";
 import { proxyLogs, proxyProviderBroken, proxyStatus } from "../core/proxy.js";
 
 export interface DoctorOptions {
@@ -52,6 +54,21 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
     ok: parsed !== null && gte(parsed, MIN_COMPOSE),
     detail: parsed ? parsed.join(".") : "unknown",
     hint: "the `!reset` tag used by the overlay needs Compose 2.24+",
+  });
+
+  // On Windows `wt` is Windows Terminal, shipped as an app execution alias on
+  // every user's PATH. Whether `wt` means this tool comes down to PATH order, and
+  // when it loses, `wt up` opens a terminal window instead of starting a stack.
+  const bin = await resolveBin();
+  checks.push({
+    name: "wt on PATH",
+    ok: bin.verified,
+    detail: bin.verified ? `${bin.command} -> ${bin.path}` : "not installed",
+    hint: bin.verified
+      ? undefined
+      : bin.shadowedBy
+        ? `${bin.shadowedBy} has the name but is a different program. Use \`ewt\`, or run \`npm i -g easy-worktree\`.`
+        : "run `npm i -g easy-worktree`, or invoke it as `npx easy-worktree`",
   });
 
   let ctxOk = false;
@@ -114,6 +131,26 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
       } catch {
         /* merged output wasn't JSON; the merge check above already reported */
       }
+    }
+
+    // A generated file that is committed hands one worktree's leased ports to
+    // every other worktree the next time someone checks the branch out — the
+    // same failure as a committed `.wt/state.json`, and just as quiet.
+    const rendered = Object.keys(ctx.config.render);
+    if (rendered.length > 0) {
+      const tracked: string[] = [];
+      for (const file of rendered) {
+        if (!(await isGitIgnored(ctx.root, file))) tracked.push(file);
+      }
+      checks.push({
+        name: "generated files ignored",
+        ok: tracked.length === 0,
+        detail: tracked.length === 0 ? `${rendered.length} ignored` : `not ignored: ${tracked.join(", ")}`,
+        hint:
+          tracked.length === 0
+            ? undefined
+            : "add them to .gitignore — committed, they hand every worktree the same ports",
+      });
     }
 
     const host = `probe.${ctx.slug}.${ctx.config.domain}`;

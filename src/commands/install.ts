@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveBin } from "../core/bin.js";
 import { gitRoot } from "../core/context.js";
-import { which } from "../core/exec.js";
 import { exists } from "../core/glob.js";
 import { readJson } from "../core/lock.js";
 import { c, printJson } from "../core/output.js";
@@ -44,7 +44,13 @@ export async function install(opts: InstallOptions): Promise<void> {
   // A hook that shells out to a binary not on PATH fails silently — the session
   // starts, nothing is injected, and nothing anywhere says why. Resolve it now,
   // at write time, when we can actually check.
-  const bin = (await which("wt")) ? "wt" : "npx --no-install easy-worktree";
+  //
+  // Checking the *name* is not enough, and this bit a real install: `which("wt")`
+  // returned true because Windows ships `wt.exe` (Windows Terminal) as an app
+  // execution alias on every user's PATH. The hook written on the strength of
+  // that would have opened a terminal window at the start of every session.
+  const resolved = await resolveBin();
+  const bin = resolved.command;
 
   written.push(
     await copyTemplate(
@@ -77,7 +83,13 @@ export async function install(opts: InstallOptions): Promise<void> {
   const ok = written.every((w) => w.action !== "skipped");
 
   if (opts.json) {
-    printJson({ ok, binary: bin, files: written });
+    printJson({
+      ok,
+      binary: bin,
+      binaryVerified: resolved.verified,
+      ...(resolved.shadowedBy ? { shadowedBy: resolved.shadowedBy } : {}),
+      files: written,
+    });
     if (!ok) process.exitCode = 1;
     return;
   }
@@ -90,7 +102,17 @@ export async function install(opts: InstallOptions): Promise<void> {
   }
   console.log();
   console.log(`hooks call ${c.bold(bin)}`);
-  console.log(c.dim("next: `/setup-easy-worktree` in Claude Code, or `wt adapt evidence` by hand"));
+  if (resolved.shadowedBy) {
+    console.log(
+      c.yellow(`note: ${resolved.shadowedBy} is on PATH but is not this tool — that name is taken`),
+    );
+  }
+  if (!resolved.verified) {
+    console.log(
+      c.dim("  nothing on PATH is this package; hooks go through npx. `npm i -g easy-worktree` to fix."),
+    );
+  }
+  console.log(c.dim(`next: \`/setup-easy-worktree\` in Claude Code, or \`${bin} adapt evidence\` by hand`));
 
   // Non-zero when anything was left alone, so a caller learns the install was
   // partial instead of assuming every file is now what this version ships.

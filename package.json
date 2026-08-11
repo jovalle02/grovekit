@@ -4,7 +4,8 @@
   "description": "Every git worktree gets its own fully-deployed, independently addressable stack.",
   "type": "module",
   "bin": {
-    "wt": "./dist/cli.js"
+    "wt": "./dist/cli.js",
+    "ewt": "./dist/cli.js"
   },
   "exports": {
     ".": "./dist/index.js"

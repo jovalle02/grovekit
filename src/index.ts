@@ -16,3 +16,7 @@ export { managedContainers, removeProject } from "./core/docker.js";
 export { gatherEvidence, guessKind, type Evidence } from "./core/adapt/evidence.js";
 export { decideHeuristically, rewriteEnv, type Decisions } from "./core/adapt/decide.js";
 export { render, renderOverlay, renderConfig } from "./core/adapt/render.js";
+export { renderFiles, interpolate, isGitIgnored, type RenderedFile } from "./core/render.js";
+export { buildEnv } from "./core/env.js";
+export { resolveBin, isOurBinary, BIN_NAMES } from "./core/bin.js";
+export { probeHosts } from "./core/health.js";

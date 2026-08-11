@@ -32,7 +32,19 @@ export function composeArgs(ctx: Context, ...rest: string[]): string[] {
   return ["compose", ...files, "-p", ctx.slug, ...rest];
 }
 
+/**
+ * True when this worktree has anything for Compose to do.
+ *
+ * A repo whose services are all `host` has no compose file at all, and running
+ * `docker compose` with no `-f` would make it search the working directory and
+ * act on whatever it happened to find there.
+ */
+export function hasCompose(ctx: Context): boolean {
+  return ctx.config.project.compose.length > 0;
+}
+
 export function compose(ctx: Context, args: string[], inherit = false): Promise<ExecResult> {
+  if (!hasCompose(ctx)) return Promise.resolve({ code: 0, stdout: "", stderr: "" });
   return exec("docker", composeArgs(ctx, ...args), {
     cwd: ctx.root,
     env: composeEnv(ctx),

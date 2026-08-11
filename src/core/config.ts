@@ -47,10 +47,7 @@ export async function loadConfig(root: string): Promise<Config> {
 
   const project = obj(raw.project, "project");
   const name = str(project.name, "project.name");
-  const compose = strArray(project.compose, "project.compose");
-  if (compose.length === 0) {
-    throw new ConfigError("project.compose must list at least one compose file.");
-  }
+  const compose = project.compose === undefined ? [] : strArray(project.compose, "project.compose");
 
   const domainTable = raw.domain === undefined ? {} : obj(raw.domain, "domain");
   const domain = domainTable.suffix === undefined ? "localtest.me" : str(domainTable.suffix, "domain.suffix");
@@ -68,6 +65,18 @@ export async function loadConfig(root: string): Promise<Config> {
   const services = parseServices(raw.services);
   if (services.length === 0) {
     throw new ConfigError("At least one [[services]] entry is required.");
+  }
+
+  // A repo with nothing containerised is a legitimate case, and the one this
+  // tool's port leasing is most useful for — an orchestrator, a `the run command`,
+  // a dev server. What is not legitimate is declaring a Compose service and then
+  // giving Compose no file to find it in.
+  if (compose.length === 0 && services.some((s) => s.runtime === "compose")) {
+    const names = services.filter((s) => s.runtime === "compose").map((s) => s.name);
+    throw new ConfigError(
+      `project.compose is empty, but ${names.join(", ")} ${names.length === 1 ? "is" : "are"} ` +
+        `runtime = "compose". List a compose file, or mark them runtime = "host".`,
+    );
   }
 
   const groups: Record<string, string[]> = {};

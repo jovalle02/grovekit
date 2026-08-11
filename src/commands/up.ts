@@ -30,7 +30,11 @@ export async function up(opts: UpOptions): Promise<Manifest> {
   const ctx = await loadContext(opts.cwd);
   const selection = resolveSelection(ctx, opts.services);
 
-  await ensureProxy(ctx.config);
+  // The proxy exists to route a Host header to a container. With nothing
+  // containerised, or nothing asking for ingress, starting it would occupy the
+  // machine's one published port for no one.
+  const needsProxy = ctx.config.services.some((s) => s.runtime === "compose" && s.subdomain);
+  if (needsProxy) await ensureProxy(ctx.config);
   await leaseHostPorts(ctx);
 
   // What was already down before we touched anything. Needed below to tell "you

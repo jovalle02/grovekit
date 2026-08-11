@@ -509,10 +509,12 @@ describe("wt install", () => {
 
     // A hook that shells out to a binary not on PATH fails silently — the
     // session starts and nothing anywhere says why. So the command written must
-    // be resolved at install time: a global `wt`, or the npx fallback.
+    // be resolved at install time, and verified to be *this* package: `ewt` when
+    // it is installed globally, `wt` where that name is free, the npx fallback
+    // when neither resolves. Never a name that belongs to another program.
     assert.match(
       settings.hooks.SessionStart?.[0]?.hooks[0]?.command ?? "",
-      /^(wt|npx --no-install easy-worktree) hook/,
+      /^(ewt|wt|npx --no-install easy-worktree) hook session-start$/,
     );
 
     assert.match(await read(path.join(repo, ".gitignore")), /^\.wt\/$/m);

@@ -1,6 +1,6 @@
 import dns from "node:dns/promises";
 import { resolveBin } from "../core/bin.js";
-import { composeConfig } from "../core/compose.js";
+import { composeConfig, hasCompose } from "../core/compose.js";
 import { loadContext } from "../core/context.js";
 import { exec } from "../core/exec.js";
 import { c, printJson } from "../core/output.js";
@@ -82,17 +82,25 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
       detail: `${ctx.config.services.length} services, domain ${ctx.config.domain}`,
     });
 
-    const merged = await composeConfig(ctx);
-    checks.push({
-      name: "compose files merge",
-      ok: merged.code === 0,
-      detail: merged.code === 0 ? ctx.config.project.compose.join(" + ") : "merge failed",
-      hint: merged.code === 0 ? undefined : merged.stderr.trim().split("\n").slice(-3).join(" "),
-    });
+    // A repo whose services are all `host` has no compose file, and every check
+    // below is about the contents of one. Reporting them as passing would be a
+    // lie of omission.
+    const merged = hasCompose(ctx)
+      ? await composeConfig(ctx)
+      : { code: 0, stdout: "", stderr: "" };
+
+    if (hasCompose(ctx)) {
+      checks.push({
+        name: "compose files merge",
+        ok: merged.code === 0,
+        detail: merged.code === 0 ? ctx.config.project.compose.join(" + ") : "merge failed",
+        hint: merged.code === 0 ? undefined : merged.stderr.trim().split("\n").slice(-3).join(" "),
+      });
+    }
 
     // The published-port check: an ingress service that still publishes a host
     // port has not actually been migrated, and will collide across worktrees.
-    if (merged.code === 0) {
+    if (hasCompose(ctx) && merged.code === 0) {
       try {
         const doc = JSON.parse(merged.stdout) as {
           services?: Record<string, { ports?: unknown[] }>;
@@ -153,65 +161,72 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
       });
     }
 
-    const host = `probe.${ctx.slug}.${ctx.config.domain}`;
-    try {
-      const { address } = await dns.lookup(host);
-      const loopback = address === "127.0.0.1" || address === "::1";
-      checks.push({
-        name: "wildcard DNS",
-        ok: loopback,
-        detail: `${host} -> ${address}`,
-        hint: loopback ? undefined : "the domain must resolve to loopback; try domain.suffix = \"localtest.me\"",
-      });
-    } catch {
-      checks.push({
-        name: "wildcard DNS",
-        ok: false,
-        detail: `${host} does not resolve`,
-        hint: "*.localhost does not resolve via the Windows resolver — use localtest.me",
-      });
+    // Ingress checks only mean something when something asks for ingress. A
+    // repo whose services are all `host` has no proxy and no hostnames, and
+    // reporting a failed DNS lookup for a name nothing resolves would be noise.
+    const needsIngress = ctx.config.services.some((s) => s.subdomain);
+    if (needsIngress) {
+      const host = `probe.${ctx.slug}.${ctx.config.domain}`;
+      try {
+        const { address } = await dns.lookup(host);
+        const loopback = address === "127.0.0.1" || address === "::1";
+        checks.push({
+          name: "wildcard DNS",
+          ok: loopback,
+          detail: `${host} -> ${address}`,
+          hint: loopback ? undefined : "the domain must resolve to loopback; try domain.suffix = \"localtest.me\"",
+        });
+      } catch {
+        checks.push({
+          name: "wildcard DNS",
+          ok: false,
+          detail: `${host} does not resolve`,
+          hint: "*.localhost does not resolve via the Windows resolver — use localtest.me",
+        });
+      }
+
+      const proxy = await proxyStatus(ctx.config);
+      if (proxy.running) {
+        checks.push({ name: "proxy", ok: true, detail: `running on :${proxy.port}` });
+      } else {
+        // Ask Docker, not a socket. A probe is not authoritative in either
+        // direction, so when the configured port is refused we go find one that
+        // Docker has actually accepted and name it — no guessing for the user.
+        const usable = await dockerCanPublish(proxy.port, ctx.config.proxy.image);
+        const suggestion = usable
+          ? null
+          : await findBindableProxyPort(proxy.port, ctx.config.proxy.image);
+
+        checks.push({
+          name: "proxy",
+          ok: usable,
+          detail: usable
+            ? `not running, docker can publish :${proxy.port}`
+            : `docker refuses :${proxy.port}`,
+          hint: usable
+            ? undefined
+            : suggestion
+              ? `set [proxy] port = ${suggestion} in worktree.toml — verified bindable just now`
+              : `no candidate port was bindable; is the Docker daemon healthy?`,
+        });
+      }
+
+      // A Traefik that cannot read the Docker socket still starts and still answers
+      // — with 404 for everything. Without this check that looks like a routing bug.
+      if (proxy.running) {
+        const broken = proxyProviderBroken(await proxyLogs());
+        checks.push({
+          name: "proxy -> docker api",
+          ok: !broken,
+          detail: broken ? `${ctx.config.proxy.image} cannot read the docker socket` : "reachable",
+          hint: broken
+            ? `Traefik < 3.6 negotiates a Docker API version below 1.44 and cannot talk to ` +
+              `Docker Engine 29+. Set [proxy] image = "traefik:v3.6" and run \`wt up\` again.`
+            : undefined,
+        });
+      }
     }
 
-    const proxy = await proxyStatus(ctx.config);
-    if (proxy.running) {
-      checks.push({ name: "proxy", ok: true, detail: `running on :${proxy.port}` });
-    } else {
-      // Ask Docker, not a socket. A probe is not authoritative in either
-      // direction, so when the configured port is refused we go find one that
-      // Docker has actually accepted and name it — no guessing for the user.
-      const usable = await dockerCanPublish(proxy.port, ctx.config.proxy.image);
-      const suggestion = usable
-        ? null
-        : await findBindableProxyPort(proxy.port, ctx.config.proxy.image);
-
-      checks.push({
-        name: "proxy",
-        ok: usable,
-        detail: usable
-          ? `not running, docker can publish :${proxy.port}`
-          : `docker refuses :${proxy.port}`,
-        hint: usable
-          ? undefined
-          : suggestion
-            ? `set [proxy] port = ${suggestion} in worktree.toml — verified bindable just now`
-            : `no candidate port was bindable; is the Docker daemon healthy?`,
-      });
-    }
-
-    // A Traefik that cannot read the Docker socket still starts and still answers
-    // — with 404 for everything. Without this check that looks like a routing bug.
-    if (proxy.running) {
-      const broken = proxyProviderBroken(await proxyLogs());
-      checks.push({
-        name: "proxy -> docker api",
-        ok: !broken,
-        detail: broken ? `${ctx.config.proxy.image} cannot read the docker socket` : "reachable",
-        hint: broken
-          ? `Traefik < 3.6 negotiates a Docker API version below 1.44 and cannot talk to ` +
-            `Docker Engine 29+. Set [proxy] image = "traefik:v3.6" and run \`wt up\` again.`
-          : undefined,
-      });
-    }
   } catch (err) {
     if (!ctxOk) {
       checks.push({

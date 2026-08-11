@@ -155,8 +155,9 @@ layer = "middleware"
     );
   });
 
-  it("requires at least one compose file and one service", async () => {
-    await rejects(`[project]\nname = "demo"\ncompose = []\n`, /at least one compose file/);
+  it("requires at least one service", async () => {
+    // An empty project.compose is legitimate — see the host-services suite — but
+    // a config declaring no services at all describes no stack.
     await rejects(`[project]\nname = "demo"\ncompose = ["docker-compose.yml"]\n`, /At least one \[\[services\]\]/);
   });
 

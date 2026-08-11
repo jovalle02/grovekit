@@ -212,3 +212,37 @@ describe("host services at runtime", () => {
     assert.deepEqual(manifest.rendered, ["the generated config"]);
   });
 });
+
+describe("a repo with nothing containerised", () => {
+  it("accepts an empty project.compose when every service is a host process", async () => {
+    const config = await load(`
+[project]
+name = "no-containers"
+
+[[services]]
+name = "gateway"
+runtime = "host"
+`);
+    assert.deepEqual(config.project.compose, []);
+    assert.equal(config.services[0]?.runtime, "host");
+  });
+
+  it("refuses an empty project.compose while a compose service is declared", async () => {
+    // Otherwise `docker compose` runs with no -f, searches the working
+    // directory, and acts on whatever it happens to find there.
+    await rejects(
+      `
+[project]
+name = "mixed"
+
+[[services]]
+name = "api"
+
+[[services]]
+name = "gateway"
+runtime = "host"
+`,
+      /api is runtime = "compose"/,
+    );
+  });
+});

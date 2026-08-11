@@ -1,9 +1,11 @@
 import path from "node:path";
 import { exec, execOrThrow } from "./exec.js";
 import { loadConfig } from "./config.js";
+import { listWorktrees, mainWorktree } from "./git.js";
 import { readJson, writeJson } from "./lock.js";
 import { uniqueSlug } from "./naming.js";
 import { stateFile } from "./paths.js";
+import { readRegistry, register } from "./registry.js";
 import type { Config, ServiceConfig, WorktreeState } from "../types.js";
 
 export class ContextError extends Error {
@@ -72,7 +74,27 @@ export async function loadContext(cwd = process.cwd()): Promise<Context> {
     await writeJson(file, state);
   }
 
+  await remember(root, state).catch(() => {
+    // The registry is a cache for commands that run outside any worktree; losing
+    // an entry costs `wt gc` some knowledge, never correctness of this command.
+  });
+
   return { root, slug: state.slug, branch, config, leases: {} };
+}
+
+/**
+ * Record this worktree in the machine-global registry the first time we see it.
+ *
+ * Every command funnels through here, so a worktree created by hand with
+ * `git worktree add` gets registered as soon as anything is run in it. That
+ * matters for `wt gc`, which is otherwise unable to tell a live worktree of an
+ * untouched repository from an orphan and would happily delete its containers.
+ */
+async function remember(root: string, state: WorktreeState): Promise<void> {
+  const registry = await readRegistry();
+  const known = registry.worktrees.find((w) => path.resolve(w.root) === root);
+  if (known && known.slug === state.slug && known.branch === state.branch) return;
+  await register({ slug: state.slug, root, branch: state.branch, repo: await mainWorktree(root) });
 }
 
 /**
@@ -83,15 +105,9 @@ export async function loadContext(cwd = process.cwd()): Promise<Context> {
 async function freshSlug(root: string, branch: string): Promise<string> {
   const taken = new Set<string>();
   try {
-    const { stdout } = await execOrThrow("git", ["worktree", "list", "--porcelain"], { cwd: root });
-    const paths = stdout
-      .split("\n")
-      .filter((l) => l.startsWith("worktree "))
-      .map((l) => path.resolve(l.slice("worktree ".length).trim()))
-      .filter((p) => p !== root);
-
-    for (const p of paths) {
-      const other = await readJson<WorktreeState | null>(stateFile(p), null);
+    for (const wt of await listWorktrees(root)) {
+      if (path.resolve(wt.path) === root) continue;
+      const other = await readJson<WorktreeState | null>(stateFile(wt.path), null);
       if (other?.slug) taken.add(other.slug);
     }
   } catch {

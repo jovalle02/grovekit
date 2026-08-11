@@ -14,7 +14,7 @@ import {
  * `not-started` services are excluded on purpose: they were never asked for, so
  * their absence must not make the stack look broken.
  */
-function stackStatus(services: RuntimeService[]): StackStatus {
+export function stackStatus(services: RuntimeService[]): StackStatus {
   const inScope = services.filter((s) => s.status !== "not-started");
   if (inScope.length === 0) return "stopped";
   if (inScope.some((s) => s.status === "unhealthy")) return "unhealthy";

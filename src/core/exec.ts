@@ -68,6 +68,23 @@ export function exec(
   });
 }
 
+/**
+ * Same as `exec`, but a missing executable is reported as exit 127 rather than a
+ * rejected promise. For probing tools that may legitimately be absent — a machine
+ * with no Docker still has to be able to run `wt gc` over its leases.
+ */
+export async function execSafe(
+  file: string,
+  args: string[] = [],
+  opts: ExecOptions = {},
+): Promise<ExecResult> {
+  try {
+    return await exec(file, args, opts);
+  } catch (err) {
+    return { code: 127, stdout: "", stderr: (err as Error).message };
+  }
+}
+
 /** Same as `exec`, but a non-zero exit throws. */
 export async function execOrThrow(
   file: string,

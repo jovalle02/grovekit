@@ -4,8 +4,11 @@ Every git worktree gets its own fully-deployed, independently addressable stack 
 no port juggling, no config rewriting, and a machine-readable manifest so an agent
 can find it and test against it.
 
-**Status: M1.** `up` / `down` / `run` / `status` / `logs` / `ls` / `doctor` work and
-are verified end to end. `wt new`, `wt rm`, `wt gc` and `wt adapt` are not built yet.
+```bash
+wt new feat/login      # branch + worktree + hydrate + boot, one call
+wt run pnpm test:e2e   # BASE_URL/API_URL/DATABASE_URL injected, exit code passed through
+wt rm feat-login       # worktree, containers, volumes, leases, all of it
+```
 
 ## How it works
 
@@ -31,6 +34,39 @@ HOST — one published port on the whole machine
 The hostname is the routing key, so no port ever appears in a URL. Everything
 inside the stack — `DATABASE_URL`, `API_URL` — is byte-identical in every worktree.
 Only browser-facing URLs vary, and they come from `${WT_NAME}`.
+
+## Install
+
+```bash
+npm install -g easy-worktree
+cd your-repo
+wt install     # agent skill, slash command, hooks, .gitignore entry
+wt adapt evidence && wt adapt decide --heuristic && wt adapt render
+wt doctor && wt up
+```
+
+`wt adapt` generates the two files below. You can also write them by hand — see
+[`examples/sample-app`](examples/sample-app) for a complete working pair.
+
+## Commands
+
+| | |
+|---|---|
+| `wt new <branch>` | branch, worktree, hydrate, start — one call |
+| `wt up [services…]` | start and block until healthy; idempotent |
+| `wt down [services…]` | stop, keeping volumes, data and leases |
+| `wt rm <worktree>` | delete the worktree and everything it owns |
+| `wt gc` | reclaim containers, volumes and leases nothing owns |
+| `wt run <cmd…>` | run with this worktree's env injected |
+| `wt status` / `wt ls` | this worktree / every worktree |
+| `wt logs [services…]` | container logs |
+| `wt hydrate` | re-copy gitignored files from the main worktree |
+| `wt adapt <step>` | migrate a repo: evidence → decide → render → validate |
+| `wt install` | wire up the agent skill, slash command and hooks |
+| `wt doctor` | check the environment and the migration |
+
+Every command takes `--json`. Human output can change freely; **`--json` is a
+contract**.
 
 ## Setup
 
@@ -61,16 +97,43 @@ networks:
     name: ${WT_PROXY_NETWORK}
 ```
 
-**`worktree.toml`** — see [`examples/sample-app`](examples/sample-app) for a
-complete, working one.
+**`worktree.toml`** — what each service is, and how to tell it's up:
 
-Then:
+```toml
+[project]
+name = "sample-app"
+compose = ["docker-compose.yml", "docker-compose.worktree.yml"]
 
-```bash
-wt doctor        # verify the environment and the migration
-wt up            # start and wait until healthy
-wt run pnpm e2e  # BASE_URL/API_URL injected, exit code passed through
+[[services]]
+name = "api"
+layer = "backend"
+subdomain = "api"          # becomes api.<worktree>.localtest.me
+port = 4000
+health = "/healthz"
+
+[[services]]
+name = "db"
+layer = "data"
+host_port = true           # leased, so you can open it in a GUI client
+health = { exec = ["pg_isready", "-U", "app"] }
+
+[groups]
+backend = ["api", "db"]    # wt up --group backend
+
+[env]
+DATABASE_URL = "postgres://app:app@${WT_HOST_DB}/app"
+
+# Gitignored files git will not bring to a new worktree.
+[hydrate]
+copy = [".env", "apps/*/.env.local"]
+link = ["node_modules", "apps/*/node_modules"]
+run  = ["pnpm install --frozen-lockfile"]
 ```
+
+Copy what you may edit per worktree; link what is large and identical. `wt` decides
+between `link` and `run` by hashing the lockfiles: identical means sharing one
+`node_modules` is safe, different means the branch changed its dependencies and it
+installs instead.
 
 ## Gotchas this repo learned the hard way
 
@@ -85,6 +148,10 @@ version below 1.44, which Engine 29 rejects. Traefik still starts and still
 answers — with 404 for everything, and only its container logs say why. `wt doctor`
 checks this too.
 
+**Every service on the shared network needs a `<name>.internal` alias.** A bare
+`api` is ambiguous there, because every worktree has one. It works with a single
+worktree and goes wrong with two. `wt adapt validate` checks for it.
+
 **A socket probe cannot predict whether Docker can publish a port.** On Windows a
 port can be reserved such that `docker run -p` fails while a plain `listen` on
 `0.0.0.0` succeeds. Docker is the authority; the pre-check is advisory.
@@ -93,12 +160,17 @@ port can be reserved such that `docker run -p` fails while a plain `listen` on
 `[proxy] port` — URLs then include the port, which works fine.
 
 **Never commit `.wt/`.** A committed `state.json` makes a new worktree inherit
-another worktree's slug and drive its containers. The tool now discards state
-whose recorded `root` doesn't match, but the `.gitignore` entry is the real fix.
+another worktree's slug and drive its containers. The tool discards state whose
+recorded `root` doesn't match, but the `.gitignore` entry is the real fix — and
+`wt install` writes it for you.
 
 **`*.localhost` does not resolve via the Windows resolver.** Chrome handles it
 internally, but `curl`, Node `fetch` and Playwright's request context do not.
 Default the domain to `localtest.me`.
+
+**`NEXT_PUBLIC_*` / `VITE_*` are baked at build time.** Setting them under
+`environment:` does nothing for the browser bundle — pass them as `build.args`, or
+serve a runtime `/env.js`.
 
 ## The manifest
 
@@ -125,12 +197,38 @@ layer broke and why.
 service was never asked for — it is not a failure, and consumers must not try to
 repair it. That distinction is the whole reason partial startup is safe.
 
-Human output can change freely; `--json` is a contract.
+## Agent integration
+
+`wt install` writes:
+
+- `.claude/skills/easy-worktree/SKILL.md` — the daily-use skill
+- `.claude/commands/setup-easy-worktree.md` — a `/setup-easy-worktree` command that
+  drives the migration
+- `SessionStart` / `SessionEnd` hook entries in `.claude/settings.json`, merged
+  rather than overwritten
+- `.wt/` in `.gitignore`, and an `AGENTS.md` section if that file exists
+
+Hooks call `wt hook <event>`, resolved at install time to a global `wt` or to
+`npx --no-install easy-worktree` — a hook pointing at a binary that isn't on PATH
+fails silently, which is worse than not installing it.
+
+`SessionStart` reports the worktree and what to run. `SessionEnd` does nothing
+unless you set `[hooks] on_session_end = "down"`: that hook has no turn to render a
+question into, so only reversible actions belong there.
 
 ## Development
 
 ```bash
 npm install
-npm run build
 npm run typecheck
+npm test                       # unit + git-backed integration, no Docker needed
+WT_TEST_DOCKER=1 npm test      # adds the full boot-a-real-stack suite
+npm run build
 ```
+
+Docker tests each use their own branch, and therefore their own Compose project,
+containers and port leases — they will not touch a stack you have running.
+
+## License
+
+MIT

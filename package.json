@@ -1,6 +1,6 @@
 {
   "name": "easy-worktree",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Every git worktree gets its own fully-deployed, independently addressable stack.",
   "type": "module",
   "bin": {
@@ -11,8 +11,19 @@
   },
   "files": [
     "dist",
-    "templates"
+    "templates",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jovalle02/easy-worktree.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jovalle02/easy-worktree/issues"
+  },
+  "homepage": "https://github.com/jovalle02/easy-worktree#readme",
   "engines": {
     "node": ">=20.11"
   },
@@ -21,7 +32,7 @@
     "dev": "tsx src/cli.ts",
     "typecheck": "tsc -p tsconfig.test.json",
     "test": "node --import tsx --test test/index.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "smol-toml": "^1.3.1"

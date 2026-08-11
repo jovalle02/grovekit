@@ -1,6 +1,6 @@
 import { compose, composePs } from "../core/compose.js";
 import { loadContext, resolveSelection, type Context } from "../core/context.js";
-import { buildRuntime, waitReady } from "../core/health.js";
+import { buildRuntime, waitReady, type RuntimeService } from "../core/health.js";
 import { buildManifest, writeManifest } from "../core/manifest.js";
 import { c, fail, printJson, printManifest } from "../core/output.js";
 import { leasePort } from "../core/ports.js";
@@ -31,6 +31,12 @@ export async function up(opts: UpOptions): Promise<Manifest> {
   await ensureProxy(ctx.config);
   await leaseHostPorts(ctx);
 
+  // What was already down before we touched anything. Needed below to tell "you
+  // stopped this earlier" from "this just failed to start".
+  const preStopped = new Set(
+    (await composePs(ctx)).filter((p) => p.state !== "running").map((p) => p.service),
+  );
+
   const args = ["up", "-d", "--remove-orphans"];
   if (opts.build) args.push("--build");
   if (opts.noDeps) args.push("--no-deps");
@@ -51,6 +57,7 @@ export async function up(opts: UpOptions): Promise<Manifest> {
   }
 
   const runtime = buildRuntime(ctx, await composePs(ctx));
+  markFailedToStart(runtime, preStopped, opts.services.length > 0 ? new Set(selection) : null);
 
   if (!opts.json && !opts.quiet) {
     const pending = runtime.filter((s) => s.status === "starting").map((s) => s.config.name);
@@ -67,6 +74,32 @@ export async function up(opts: UpOptions): Promise<Manifest> {
   if (opts.json) printJson(manifest);
   else printManifest(manifest);
   return manifest;
+}
+
+/**
+ * A container that exists but is not running, right after we asked Compose to
+ * start it, has failed to start — it is not "stopped".
+ *
+ * Without this a service that crashes fast enough to be gone before the first
+ * `compose ps` is never watched by `waitReady`: it is not `starting`, so it is
+ * never probed, never marked unhealthy, and never gets its logs attached. The
+ * stack then reports `starting` with exit 0 — success, for a broken stack.
+ *
+ * Services deliberately left down are exempt, which is why the caller has to say
+ * both what it asked for and what was already stopped beforehand.
+ */
+export function markFailedToStart(
+  runtime: RuntimeService[],
+  preStopped: ReadonlySet<string>,
+  requested: ReadonlySet<string> | null,
+): void {
+  for (const svc of runtime) {
+    if (svc.status !== "stopped") continue;
+    const name = svc.config.name;
+    // `requested === null` means "everything", so everything was asked for.
+    const askedFor = requested === null || requested.has(name);
+    if (askedFor || !preStopped.has(name)) svc.status = "starting";
+  }
 }
 
 /** Only services declaring `host_port` consume a lease. */

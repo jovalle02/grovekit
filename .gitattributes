@@ -1,0 +1,11 @@
+# Line endings are LF everywhere — in the repository and in the working tree.
+#
+# Without this the result depends on each developer's core.autocrlf, and on
+# Windows (autocrlf=true) every file reads as modified with an empty diff. The
+# CI matrix runs on Linux, Windows and macOS, so pinning it is the only way the
+# same checkout is byte-identical on all three.
+#
+# It also has to hold for test/fixtures/, which the tests byte-compare against
+# renderer output built with "\n". Marking those binary (-text) would freeze
+# whatever endings happened to be on disk and fail the comparison.
+* text=auto eol=lf

@@ -1,12 +1,12 @@
 import { spawn } from "node:child_process";
 import { composePs } from "../core/compose.js";
-import { loadContext, type Context } from "../core/context.js";
+import { loadContext } from "../core/context.js";
+import { buildEnv } from "../core/env.js";
 import { buildRuntime, probeOnce } from "../core/health.js";
 import { buildManifest } from "../core/manifest.js";
-import { envKey } from "../core/naming.js";
 import { c, fail } from "../core/output.js";
 import { leaseHostPorts } from "./up.js";
-import type { Manifest } from "../types.js";
+
 
 export interface RunOptions {
   json: boolean;
@@ -102,34 +102,4 @@ export function quoteForShell(arg: string): string {
   if (arg === "") return "''";
   if (!/[^\w@%+=:,./-]/.test(arg)) return arg;
   return `'${arg.replace(/'/g, `'\\''`)}'`;
-}
-
-/** The environment `wt run` injects. Also what `wt env` prints. */
-export function buildEnv(ctx: Context, manifest: Manifest): Record<string, string> {
-  const env: Record<string, string> = {
-    WT_NAME: ctx.slug,
-    WT_BRANCH: ctx.branch,
-    WT_ROOT: ctx.root,
-    WT_DOMAIN: ctx.config.domain,
-  };
-
-  if (manifest.baseUrl) env.BASE_URL = manifest.baseUrl;
-  if (manifest.apiUrl) env.API_URL = manifest.apiUrl;
-
-  for (const svc of manifest.services) {
-    const key = envKey(svc.name);
-    if (svc.url) env[`WT_URL_${key}`] = svc.url;
-    if (svc.hostAddress) {
-      env[`WT_HOST_${key}`] = svc.hostAddress;
-      const port = svc.hostAddress.split(":").pop();
-      if (port) env[`WT_PORT_${key}`] = port;
-    }
-  }
-
-  // User-declared templates, interpolated against everything above.
-  for (const [key, template] of Object.entries(ctx.config.env)) {
-    env[key] = template.replace(/\$\{(\w+)\}/g, (_, name: string) => env[name] ?? "");
-  }
-
-  return env;
 }

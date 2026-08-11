@@ -3,8 +3,8 @@ import { loadContext } from "../core/context.js";
 import { buildRuntime, probeOnce } from "../core/health.js";
 import { buildManifest, writeManifest } from "../core/manifest.js";
 import { printJson, printManifest } from "../core/output.js";
-import { buildEnv } from "./run.js";
-import { leaseHostPorts } from "./up.js";
+import { buildEnv } from "../core/env.js";
+import { applyRender, leaseHostPorts } from "./up.js";
 
 export interface StatusOptions {
   json: boolean;
@@ -24,7 +24,11 @@ export async function status(opts: StatusOptions): Promise<void> {
   // Without this every running service would report `starting` forever: Compose
   // only tells us the container exists, not that the app inside answers.
   await probeOnce(ctx, runtime);
-  const manifest = buildManifest(ctx, runtime);
+
+  // Refresh generated config here too: a host process is launched by the
+  // developer directly, and `wt status` is often the last thing run before that.
+  const rendered = await applyRender(ctx, runtime, !opts.json);
+  const manifest = buildManifest(ctx, runtime, rendered);
 
   // Refresh the on-disk manifest so a crashed run can't leave a stale one behind.
   await writeManifest(ctx, manifest);

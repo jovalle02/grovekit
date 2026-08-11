@@ -41,6 +41,36 @@ export interface ServiceConfig {
   health: HealthCheck;
 }
 
+/**
+ * What a fresh worktree needs before it can run, and none of which git brings
+ * along — every one of these paths is gitignored by definition.
+ *
+ * `copy` for things you may edit per worktree (`.env`); `link` for things that
+ * are large and identical (`node_modules`); `run` for the install command that
+ * rebuilds them when the branch actually changed its dependencies.
+ */
+export interface HydrateConfig {
+  copy: string[];
+  link: string[];
+  run: string[];
+  /**
+   * Files whose hashes decide `link` vs `run`. Empty means "auto-detect the usual
+   * suspects at the root".
+   */
+  lockfiles: string[];
+}
+
+export interface HooksConfig {
+  /** `status` injects stack state into the agent's first turn. */
+  onSessionStart: "status" | "off";
+  /**
+   * `SessionEnd` cannot ask a question — the session is over and there is no turn
+   * to render a prompt into. So the only automatable action is the reversible
+   * one: `down` stops containers and keeps every byte of data. Never `rm`.
+   */
+  onSessionEnd: "off" | "down";
+}
+
 export interface Config {
   project: { name: string; compose: string[] };
   domain: string;
@@ -51,6 +81,8 @@ export interface Config {
   /** Templates interpolated against the injected vars, e.g. DATABASE_URL. */
   env: Record<string, string>;
   healthTimeoutMs: number;
+  hydrate: HydrateConfig;
+  hooks: HooksConfig;
 }
 
 /** `.wt/state.json` — identity of this worktree, written once and then stable. */

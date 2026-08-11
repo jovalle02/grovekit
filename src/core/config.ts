@@ -1,7 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { parse as parseToml } from "smol-toml";
-import type { Config, HealthCheck, Layer, ServiceConfig } from "../types.js";
+import type {
+  Config,
+  HealthCheck,
+  HooksConfig,
+  HydrateConfig,
+  Layer,
+  ServiceConfig,
+} from "../types.js";
 
 export const CONFIG_FILENAMES = ["worktree.toml", ".worktree.toml"];
 
@@ -102,7 +109,45 @@ export async function loadConfig(root: string): Promise<Config> {
     commands,
     env,
     healthTimeoutMs,
+    hydrate: parseHydrate(raw.hydrate),
+    hooks: parseHooks(raw.hooks),
   };
+}
+
+function parseHydrate(value: unknown): HydrateConfig {
+  const empty: HydrateConfig = { copy: [], link: [], run: [], lockfiles: [] };
+  if (value === undefined) return empty;
+  const table = obj(value, "hydrate");
+  return {
+    copy: table.copy === undefined ? [] : strArray(table.copy, "hydrate.copy"),
+    link: table.link === undefined ? [] : strArray(table.link, "hydrate.link"),
+    run: table.run === undefined ? [] : strArray(table.run, "hydrate.run"),
+    lockfiles: table.lockfiles === undefined ? [] : strArray(table.lockfiles, "hydrate.lockfiles"),
+  };
+}
+
+function parseHooks(value: unknown): HooksConfig {
+  // Off by default in both directions. A tool that stops your containers because
+  // a chat window closed had better be something you opted into.
+  const defaults: HooksConfig = { onSessionStart: "status", onSessionEnd: "off" };
+  if (value === undefined) return defaults;
+  const table = obj(value, "hooks");
+
+  const start = table.on_session_start === undefined
+    ? defaults.onSessionStart
+    : str(table.on_session_start, "hooks.on_session_start");
+  if (start !== "status" && start !== "off") {
+    throw new ConfigError(`hooks.on_session_start must be "status" or "off" (got "${start}").`);
+  }
+
+  const end = table.on_session_end === undefined
+    ? defaults.onSessionEnd
+    : str(table.on_session_end, "hooks.on_session_end");
+  if (end !== "off" && end !== "down") {
+    throw new ConfigError(`hooks.on_session_end must be "off" or "down" (got "${end}").`);
+  }
+
+  return { onSessionStart: start, onSessionEnd: end };
 }
 
 function parseServices(value: unknown): ServiceConfig[] {

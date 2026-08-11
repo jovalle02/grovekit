@@ -22,7 +22,10 @@ export async function logs(opts: LogsOptions): Promise<void> {
   if (opts.json) {
     const { stdout, stderr } = await compose(ctx, args);
     const lines = (stdout + stderr).split("\n").map((l) => l.trimEnd()).filter(Boolean);
-    console.log(JSON.stringify({ ok: true, services: selection, lines }, null, 2));
+    // Report the services actually covered, not `[]` — an empty selector means
+    // "all", and echoing the empty list back reads as "none".
+    const covered = selection.length > 0 ? selection : ctx.config.services.map((s) => s.name);
+    console.log(JSON.stringify({ ok: true, services: covered, lines }, null, 2));
     return;
   }
 

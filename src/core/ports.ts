@@ -1,5 +1,6 @@
 import net from "node:net";
 import { createHash } from "node:crypto";
+import { exec } from "./exec.js";
 import { readJson, withLock, writeJson } from "./lock.js";
 import { leasesFile } from "./paths.js";
 
@@ -54,6 +55,46 @@ export async function leasePort(key: string): Promise<number> {
       `No free port in ${RANGE_START}-${RANGE_START + RANGE_SIZE}. Try \`wt gc\` to reclaim leases.`,
     );
   });
+}
+
+/** Ports worth trying for the shared proxy, best URLs first. */
+const PROXY_CANDIDATES = [80, 8080, 8081, 8088, 9080, 9090, 10080, 18080, 28080];
+
+/**
+ * Ask Docker whether it can actually publish a port, by publishing one.
+ *
+ * This is the only authoritative test. A socket probe is not enough in either
+ * direction: Windows can reserve a port such that `docker run -p` fails while a
+ * plain listen on 0.0.0.0 succeeds (observed on :8080), and a port held only on
+ * another interface can fool a loopback-only probe.
+ */
+export async function dockerCanPublish(port: number, image: string): Promise<boolean> {
+  const name = `wt-portcheck-${port}`;
+  await exec("docker", ["rm", "-f", name]);
+  const { code } = await exec("docker", [
+    "run", "--rm", "-d",
+    "-p", `${port}:80`,
+    "--name", name,
+    "--entrypoint", "sleep",
+    image, "1",
+  ]);
+  // `sleep 1` + --rm self-cleans, but never rely on that for a port we may retry.
+  await exec("docker", ["rm", "-f", name]);
+  return code === 0;
+}
+
+/**
+ * First port Docker will actually publish, preferring `wanted` so an existing
+ * config is kept when it works. Returns null if every candidate is refused.
+ */
+export async function findBindableProxyPort(
+  wanted: number,
+  image: string,
+): Promise<number | null> {
+  for (const port of [wanted, ...PROXY_CANDIDATES.filter((p) => p !== wanted)]) {
+    if (await dockerCanPublish(port, image)) return port;
+  }
+  return null;
 }
 
 export async function releaseLeases(slug: string): Promise<string[]> {

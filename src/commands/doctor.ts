@@ -3,7 +3,7 @@ import { composeConfig } from "../core/compose.js";
 import { loadContext } from "../core/context.js";
 import { exec } from "../core/exec.js";
 import { c, printJson } from "../core/output.js";
-import { isPortFree } from "../core/ports.js";
+import { dockerCanPublish, findBindableProxyPort } from "../core/ports.js";
 import { proxyLogs, proxyProviderBroken, proxyStatus } from "../core/proxy.js";
 
 export interface DoctorOptions {
@@ -136,19 +136,30 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
     }
 
     const proxy = await proxyStatus(ctx.config);
-    const portFree = proxy.running ? true : await isPortFree(proxy.port);
-    checks.push({
-      name: "proxy",
-      ok: proxy.running || portFree,
-      detail: proxy.running
-        ? `running on :${proxy.port}`
-        : `not running, :${proxy.port} is ${portFree ? "free" : "taken"}`,
-      hint:
-        proxy.running || portFree
+    if (proxy.running) {
+      checks.push({ name: "proxy", ok: true, detail: `running on :${proxy.port}` });
+    } else {
+      // Ask Docker, not a socket. A probe is not authoritative in either
+      // direction, so when the configured port is refused we go find one that
+      // Docker has actually accepted and name it — no guessing for the user.
+      const usable = await dockerCanPublish(proxy.port, ctx.config.proxy.image);
+      const suggestion = usable
+        ? null
+        : await findBindableProxyPort(proxy.port, ctx.config.proxy.image);
+
+      checks.push({
+        name: "proxy",
+        ok: usable,
+        detail: usable
+          ? `not running, docker can publish :${proxy.port}`
+          : `docker refuses :${proxy.port}`,
+        hint: usable
           ? undefined
-          : `something else holds :${proxy.port} — set [proxy] port = <n> in worktree.toml. ` +
-            `On Windows, Docker Desktop's backend often holds :80 even with no containers running.`,
-    });
+          : suggestion
+            ? `set [proxy] port = ${suggestion} in worktree.toml — verified bindable just now`
+            : `no candidate port was bindable; is the Docker daemon healthy?`,
+      });
+    }
 
     // A Traefik that cannot read the Docker socket still starts and still answers
     // — with 404 for everything. Without this check that looks like a routing bug.

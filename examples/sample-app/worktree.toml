@@ -40,3 +40,13 @@ DATABASE_URL = "postgres://app:app@${WT_HOST_DB}/app"
 
 [commands]
 e2e = "node e2e.mjs"
+
+# What a fresh worktree needs and git will not bring — every path here is
+# gitignored by definition. Copy what you may edit per worktree; link what is
+# large and identical. `wt` hashes the lockfiles to choose between `link` and
+# `run`: identical means sharing one node_modules is safe, different means the
+# branch changed its dependencies and it installs instead.
+#
+# This fixture has no dependencies, so only `copy` does anything here.
+[hydrate]
+copy = [".env"]

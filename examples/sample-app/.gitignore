@@ -1,3 +1,8 @@
 # Per-worktree runtime state. Committing this makes a new worktree inherit
 # another worktree's identity, which points its commands at the wrong containers.
 .wt/
+
+# Exactly the kind of file `[hydrate] copy` exists for: needed to run, never
+# committed, and therefore absent from every worktree git creates.
+.env
+node_modules/

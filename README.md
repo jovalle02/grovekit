@@ -135,9 +135,55 @@ between `link` and `run` by hashing the lockfiles: identical means sharing one
 `node_modules` is safe, different means the branch changed its dependencies and it
 installs instead.
 
+## Stacks Docker doesn't run
+
+Not every repo is containerised. A an orchestrator, a `the run command`, a dev
+server you start yourself — these bind host ports directly, so there's no Docker
+network to hide identical ports inside and the proxy has nothing to route to.
+What still collides is the port, and that part `wt` can own:
+
+```toml
+[project]
+name = "my-app"
+compose = []               # nothing containerised at all — that's allowed
+
+[[services]]
+name = "api-grpc"
+runtime = "host"           # wt leases a port; it does not start this
+health = { tcp = true }
+
+# Hand the leases back through a file the app already reads.
+[render]
+"src/server/the generated config" = """
+{ "Ports": { "ApiGrpc": ${WT_PORT_API_GRPC} } }
+"""
+
+# …or through the environment, for anything read from there.
+[env]
+SERVER_URL = "https://localhost:${WT_PORT_API_HTTPS}"
+```
+
+Then `wt run the run command --project src/server` launches it with this worktree's
+ports, and two worktrees can run the same stack at once.
+
+A `host` service is **never** `unhealthy` and never blocks the stack from being
+`ready` — `wt` didn't start it and can't, so "not listening yet" isn't a failure
+it may report. It shows as `listening` or `not running`, and joins the scope once
+its port answers.
+
+Rendered files are rewritten only when their content changes — those paths are
+what a hot-reloading dev server watches — and `wt doctor` checks they're
+gitignored, since committed they'd hand every worktree the same ports.
+
 ## Gotchas this repo learned the hard way
 
 All of these were found by running it, not by reading docs.
+
+**On Windows, `wt` is Windows Terminal.** It ships as an app execution alias on
+every user's PATH, so whether `wt` means this tool comes down to PATH order —
+and when it loses, `wt up` opens a terminal window. The package installs as
+`ewt` too; prefer that on Windows. `wt doctor` reports which one is live, and
+`wt install` verifies the binary it writes into a hook is actually this package.
 
 **`!reset` erases, `!override` replaces.** `ports: !reset ["8080:80"]` silently
 publishes *nothing* — the value is ignored. Use `!override` whenever you mean

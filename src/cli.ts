@@ -18,7 +18,7 @@ import { ConfigError } from "./core/config.js";
 import { ContextError } from "./core/context.js";
 import { c, fail } from "./core/output.js";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 
 const HELP = `${c.bold("wt")} — every git worktree gets its own stack
 

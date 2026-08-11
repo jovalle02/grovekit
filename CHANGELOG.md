@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.3.0
+
+Stacks that Docker does not run. Built against a real non-containerised repository,
+which is where every fix below came from.
+
+### Added
+
+- **`runtime = "host"` services.** A service this tool does not start — an orchestrator
+  server, a `the run command`, a dev server in someone's own terminal. The proxy
+  trick needs a Docker network to hide identical ports inside and a host process
+  has none, so all `wt` can own is the port: it leases one per worktree and stays
+  out of the way. Such a service is never `unhealthy` and never blocks the stack
+  from reaching `ready` — reporting a failure for a process the developer simply
+  has not launched would make `wt up` hang and `wt run` refuse.
+- **`[render]`** — files written from the worktree's environment on `wt up` and
+  `wt status`. The other half of the above: a leased port is useless until the
+  process that needs it can discover what it got, and these stacks already read a
+  local config file. An unchanged file is not rewritten, mtime included, because
+  those paths are what a hot-reloading dev server watches. A missing variable
+  fails the file rather than expanding to nothing and producing config that
+  parses wrong somewhere else.
+- **Repos with nothing containerised.** `project.compose` may be empty when every
+  service is `host`. `wt up` then starts no proxy, and `wt doctor` omits the
+  compose, DNS and proxy checks rather than reporting them green.
+- **`ewt`** as a second binary name, and a `doctor` check for which one is live.
+
+### Fixed
+
+- **`wt install` wrote a hook pointing at Windows Terminal.** `which("wt")`
+  returned true because Windows ships `wt.exe` as an app execution alias on every
+  user's PATH; the hook written on the strength of it would have opened a
+  terminal window at the start of every session, silently. Resolution now
+  verifies that the file a name resolves to is actually this package.
+- **`wt new` branched from `main` instead of HEAD.** Found by using it: the
+  config enabling this tool was on a feature branch, so the new worktree had no
+  `worktree.toml` and the whole command rolled back, reporting a missing file
+  that was sitting on the branch the user was standing on. HEAD is what
+  `git switch -c` uses.
+- **`wt new`'s rollback left the branch behind.** The obvious retry then did
+  something different and worse — checking the branch out instead of creating it,
+  inheriting the failed run's base, and reporting an error about the consequence.
+- **Line endings.** `git checkout` on Windows rewrote `test/fixtures/` as CRLF and
+  the byte-comparison tests failed on a clean checkout of a commit whose tests
+  had just passed. `.gitattributes` now pins LF, which is also the only way the
+  three-OS CI matrix produces identical working trees.
+
 ## 0.2.0
 
 The lifecycle release: a worktree can now be created, hydrated, used and deleted

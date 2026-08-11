@@ -1,10 +1,12 @@
 import { compose, composePs } from "../core/compose.js";
 import { loadContext, resolveSelection, type Context } from "../core/context.js";
-import { buildRuntime, waitReady, type RuntimeService } from "../core/health.js";
+import { buildEnv } from "../core/env.js";
+import { buildRuntime, probeHosts, waitReady, type RuntimeService } from "../core/health.js";
 import { buildManifest, writeManifest } from "../core/manifest.js";
 import { c, fail, printJson, printManifest } from "../core/output.js";
 import { leasePort } from "../core/ports.js";
 import { ensureProxy } from "../core/proxy.js";
+import { renderFiles } from "../core/render.js";
 import { envKey } from "../core/naming.js";
 import type { Manifest } from "../types.js";
 
@@ -65,7 +67,10 @@ export async function up(opts: UpOptions): Promise<Manifest> {
   }
 
   const { ok } = await waitReady(ctx, runtime, opts.timeoutMs ?? ctx.config.healthTimeoutMs);
-  const manifest = await writeManifest(ctx, buildManifest(ctx, runtime));
+  await probeHosts(ctx, runtime);
+
+  const rendered = await applyRender(ctx, runtime, !opts.json && !opts.quiet);
+  const manifest = await writeManifest(ctx, buildManifest(ctx, runtime, rendered));
 
   // Non-zero on failure: agents and CI branch on this, not on parsing the output.
   if (!ok) process.exitCode = 1;
@@ -100,6 +105,41 @@ export function markFailedToStart(
     const askedFor = requested === null || requested.has(name);
     if (askedFor || !preStopped.has(name)) svc.status = "starting";
   }
+}
+
+/**
+ * Write the `[render]` files and report which ones landed.
+ *
+ * Shared by `up` and `status` so that a worktree's generated config is refreshed
+ * by any command that looks at it, not only by the one that starts things. A
+ * host process is usually launched by the developer directly — `the run command`,
+ * `pnpm dev` — and by then the last `wt` command they ran may well have been
+ * `wt status`.
+ *
+ * A failed render is reported and does not abort: the containers are already up,
+ * and taking the stack down over a typo in a template would be a worse outcome
+ * than a loud warning.
+ */
+export async function applyRender(
+  ctx: Context,
+  runtime: RuntimeService[],
+  report: boolean,
+): Promise<string[]> {
+  if (Object.keys(ctx.config.render).length === 0) return [];
+
+  const env = buildEnv(ctx, buildManifest(ctx, runtime));
+  const results = await renderFiles(ctx.root, ctx.config.render, env);
+
+  if (report) {
+    for (const result of results) {
+      if (result.status === "written") console.log(`${c.green("✓")} rendered ${result.file}`);
+      else if (result.status === "failed") {
+        console.error(c.red(`✗ could not render ${result.file}: ${result.reason}`));
+      }
+    }
+  }
+
+  return results.filter((r) => r.status !== "failed").map((r) => r.file);
 }
 
 /** Only services declaring `host_port` consume a lease. */

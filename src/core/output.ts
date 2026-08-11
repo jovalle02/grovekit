@@ -49,7 +49,14 @@ export function printManifest(m: Manifest): void {
     s.layer,
     s.name,
     s.url ?? s.hostAddress ?? c.dim("—"),
-    STATUS_STYLE[s.status](s.status),
+    // A host process is not started by this tool, so `not-started` there means
+    // "you have not launched it", not "something is wrong". Say which it is
+    // rather than leaving the reader to infer it from the status word.
+    s.runtime === "host"
+      ? s.status === "ready"
+        ? c.green("listening")
+        : c.dim("not running")
+      : STATUS_STYLE[s.status](s.status),
   ]);
   console.log(indent(table(["LAYER", "SERVICE", "URL", "STATUS"], rows)));
   console.log();
@@ -62,6 +69,9 @@ export function printManifest(m: Manifest): void {
     console.log();
   }
 
+  if (m.rendered?.length) {
+    console.log(c.dim(`  generated: ${m.rendered.join(", ")}`));
+  }
   console.log(c.dim(`  manifest: .wt/manifest.json`));
 }
 

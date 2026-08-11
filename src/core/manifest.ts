@@ -35,12 +35,14 @@ function toManifestService(svc: RuntimeService): ManifestService {
   const entry: ManifestService = {
     name: svc.config.name,
     layer: svc.config.layer,
+    runtime: svc.config.runtime,
     status: svc.status,
     url: svc.url,
     internalUrl: svc.internalUrl,
     hostAddress: svc.hostAddress,
     health,
-    logs: `wt logs ${svc.config.name}`,
+    // There are no logs to fetch for a process this tool does not run.
+    logs: svc.config.runtime === "host" ? "" : `wt logs ${svc.config.name}`,
   };
   if (svc.lastLogs?.length) entry.lastLogs = svc.lastLogs;
   return entry;
@@ -57,7 +59,11 @@ function pickPrimaryUrls(services: RuntimeService[]): { baseUrl: string | null; 
   };
 }
 
-export function buildManifest(ctx: Context, runtime: RuntimeService[]): Manifest {
+export function buildManifest(
+  ctx: Context,
+  runtime: RuntimeService[],
+  rendered: string[] = [],
+): Manifest {
   const { baseUrl, apiUrl } = pickPrimaryUrls(runtime);
 
   const commands: Record<string, string> = {};
@@ -76,6 +82,7 @@ export function buildManifest(ctx: Context, runtime: RuntimeService[]): Manifest
     apiUrl,
     services: runtime.map(toManifestService),
     commands,
+    rendered,
     updatedAt: new Date().toISOString(),
   };
 }

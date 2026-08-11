@@ -31,7 +31,12 @@ export function buildRuntime(ctx: Context, ps: ComposePs[]): RuntimeService[] {
     const lease = ctx.leases[config.name];
 
     let status: ServiceStatus;
-    if (!row) status = "not-started";
+    if (config.runtime === "host") {
+      // Compose has never heard of this one and never will. It starts as
+      // `not-started` — nobody asked *us* to start it — and `probeHosts`
+      // promotes it if something is in fact listening on its leased port.
+      status = "not-started";
+    } else if (!row) status = "not-started";
     else if (row.state === "running") status = "starting";
     else status = "stopped";
 
@@ -58,6 +63,28 @@ export async function probeOnce(ctx: Context, runtime: RuntimeService[]): Promis
       .filter((s) => s.status === "starting")
       .map(async (svc) => {
         if (await probe(ctx, svc)) svc.status = "ready";
+      }),
+  );
+  await probeHosts(ctx, runtime);
+}
+
+/**
+ * Report whether host processes are listening on the ports we leased them.
+ *
+ * Purely observational, and deliberately outside the readiness gate: `wt` did
+ * not start these and cannot start them, so "nothing is listening yet" is not a
+ * failure it may report — it would make `wt up` hang and `wt run` refuse over a
+ * process the developer simply has not launched. A host service is `ready` when
+ * its port answers and `not-started` otherwise, and `not-started` is already the
+ * status that means "nobody asked for this", which is exactly right here.
+ */
+export async function probeHosts(ctx: Context, runtime: RuntimeService[]): Promise<void> {
+  await Promise.all(
+    runtime
+      .filter((s) => s.config.runtime === "host")
+      .map(async (svc) => {
+        const lease = ctx.leases[svc.config.name];
+        svc.status = lease !== undefined && (await tcpReachable(lease)) ? "ready" : "not-started";
       }),
   );
 }

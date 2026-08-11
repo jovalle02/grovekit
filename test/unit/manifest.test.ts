@@ -11,6 +11,7 @@ function service(name: string, status: ServiceStatus, extra: Partial<RuntimeServ
     config: {
       name,
       layer: extra.config?.layer ?? "backend",
+      runtime: "compose",
       health: { kind: "none" },
       ...(extra.config ?? {}),
     },
@@ -33,6 +34,7 @@ const config: Config = {
   healthTimeoutMs: 120_000,
   hydrate: { copy: [], link: [], run: [], lockfiles: [] },
   hooks: { onSessionStart: "status", onSessionEnd: "off" },
+  render: {},
 };
 
 const ctx: Context = {
@@ -115,16 +117,16 @@ describe("markFailedToStart", () => {
 describe("buildManifest", () => {
   const runtime = [
     service("web", "not-started", {
-      config: { name: "web", layer: "frontend", health: { kind: "http", path: "/healthz" }, subdomain: "web", port: 3000 },
+      config: { name: "web", layer: "frontend", runtime: "compose", health: { kind: "http", path: "/healthz" }, subdomain: "web", port: 3000 },
       url: "http://web.fix-billing.localtest.me:8081",
     }),
     service("api", "ready", {
-      config: { name: "api", layer: "backend", health: { kind: "http", path: "/healthz" }, subdomain: "api", port: 4000 },
+      config: { name: "api", layer: "backend", runtime: "compose", health: { kind: "http", path: "/healthz" }, subdomain: "api", port: 4000 },
       url: "http://api.fix-billing.localtest.me:8081",
       internalUrl: "http://api.internal:4000",
     }),
     service("db", "ready", {
-      config: { name: "db", layer: "data", health: { kind: "exec", command: ["pg_isready"] }, hostPort: true },
+      config: { name: "db", layer: "data", runtime: "compose", health: { kind: "exec", command: ["pg_isready"] }, hostPort: true },
       hostAddress: "localhost:23229",
     }),
   ];

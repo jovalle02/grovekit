@@ -237,7 +237,11 @@ describe("stack", { skip: dockerTests ? false : "set WT_TEST_DOCKER=1 to run Doc
     const result = await runCli(["doctor", "--json"], { cwd: repo, home, timeoutMs: TIMEOUT });
 
     const report = result.json<{ ok: boolean; checks: { name: string; ok: boolean; detail: string }[] }>();
-    const failed = report.checks.filter((ch) => !ch.ok);
+
+    // Everything except the global install, which is a property of the machine
+    // rather than of the migration. Tests run from a clone against `dist/`, so
+    // the package is not on PATH here and is not expected to be.
+    const failed = report.checks.filter((ch) => !ch.ok && ch.name !== "grove on PATH");
     assert.deepEqual(failed, [], `failing checks: ${failed.map((f) => `${f.name} (${f.detail})`).join(", ")}`);
   });
 });

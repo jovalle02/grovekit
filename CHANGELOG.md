@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.4.0
+
+Renamed, and made legible from outside a single worktree.
+
+### Changed
+
+- **The tool is `grovekit`; the command is `grove`.** The old name was taken on
+  npm and promised rather than described. A grove is a stand of trees growing
+  together, which is the product. One binary, deliberately: every alias is
+  another thing that can be shadowed, another string baked into someone's hook
+  file, and another way for two installs to disagree — which this project paid
+  for once already when `wt` turned out to be Windows Terminal on every Windows
+  PATH.
+- On-disk identifiers are **not** renamed: `.wt/`, the `WT_*` variables user
+  configs interpolate, `~/.easy-worktree/`, the proxy project and the
+  `wt.managed` label all have live data behind them.
+
+### Added
+
+- **`grove ls --all`** — every worktree on the machine, across repositories, with
+  its leased ports. The per-repo listing structurally cannot answer "what else is
+  running?", because it enumerates from one repo's git worktree list.
+- **`grove restart [services…]`** — the verb whose absence was being worked
+  around by taking the whole stack down and back up.
+- **`SessionStart` now names this worktree's own addresses**, service by service,
+  and the other worktrees that are live with theirs. A port carried over from
+  another worktree fails in a way that looks like a broken application rather
+  than a wrong address.
+- **Unknown config keys are rejected.** A `[hydrate]` written in the wrong shape
+  parsed fine, produced empty lists, passed `doctor` and was reported as working
+  — while nothing was copied and nothing linked.
+
+### Fixed
+
+- **The TCP probe only tried IPv4**, so a dev server bound to `::1` reported "not
+  running" while serving correctly — and the workaround was deleting its health
+  check.
+- **`grove up` did not restart a process whose generated config had changed**, so
+  editing `worktree.toml` and re-running it kept the old ports: the change looked
+  applied and was not.
+- **`install` left the previous name's hook and skill in place**, so the session
+  context was injected twice and two competing skills fought for selection.
+- `grove new` now explains that an uncommitted `worktree.toml` is why the new
+  worktree lacked one, and `grove rm` names `core.longpaths` as the usual cause of
+  git's bare exit 255 on Windows.
+
 ## 0.3.0
 
 Stacks that Docker does not run. Built against a real non-containerised
@@ -39,7 +85,7 @@ repository, which is where every fix below came from.
 - **Repos with nothing containerised.** `project.compose` may be empty when every
   service is `host`. `grove up` then starts no proxy, and `grove doctor` omits the
   compose, DNS and proxy checks rather than reporting them green.
-- **`ewt`** as a second binary name, and a `doctor` check for which one is live.
+- A `doctor` check reporting which binary on PATH is actually this package.
 
 ### Fixed
 
@@ -123,7 +169,7 @@ without leaving anything behind.
   accepted, instead of one a socket probe merely found free.
 
 Three more bugs were caught before they shipped and are recorded as traps 11–13
-in `HANDOFF.md`: a `gc` sweep that would have destroyed every stack on a machine
+in `DESIGN.md`: a `gc` sweep that would have destroyed every stack on a machine
 with a lost registry file, a shared mutable empty-registry constant, and a
 `startsWith` path check that confused `app-feature` with `app-feat`.
 

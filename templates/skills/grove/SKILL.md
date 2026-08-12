@@ -34,32 +34,55 @@ Options worth knowing: `--from <ref>` to branch from something other than the
 default, `--no-up` to create it without starting anything, `--path <dir>` to
 choose the location.
 
-## Starting from another worktree's data
+## Before creating a worktree: check for a database and ask
 
-A new worktree gets an empty database. That is right when migrations and a seed
-script rebuild the data on boot, and wrong when the data came from a dump
-somebody restored by hand, which no new worktree can reproduce.
+A new worktree gets an **empty** database. Whether that is fine or useless
+depends on something only the user knows, so do not decide it for them.
 
-    grove new feat/thing --seed-from main --json
+**Every time you are about to run `grove new`, check first:**
 
-That copies the contents of every database in `main` into the new worktree,
-before the application starts. The two stay separate databases afterwards: a
-migration on one branch cannot reach the other.
+    grove seed --json
 
-**Tell the user how long this will take before you run it.** The copy dominates
-everything else `grove new` does, and it scales with the size of the data, not
-with the size of the repo. A small database adds seconds; a few gigabytes turn a
-ten-second command into several minutes, and a `--timeout` that was generous
-without a copy may not be with one. Say which databases are being copied and
-roughly how large they are, so the wait is expected rather than alarming. The
-`seed` object in the JSON reports the byte count per database once it is done.
+Read-only. It reports the databases in the main worktree, whether they are
+running, and how big they are.
 
-`--seed-from` is obeyed as given: it copies even when the source database looks
-empty, so what you asked for is what happens.
+Then:
 
-Run it without `--seed-from` when you do not know whether the data matters: an
-agent is never prompted, so the default is simply not to copy. `--no-seed`
-suppresses it even when the repo configures a source in `[seed] from`.
+- **No databases, or `hasData` is false on all of them** - say nothing, just run
+  `grove new`. There is nothing to ask about.
+- **A database with `hasData: true`** - **ask the user before running anything.**
+
+Ask it concretely, with the number in it:
+
+> `main` has a database with data in it (`db`, 260 MB). A new worktree starts
+> with an empty one. Do you want me to copy it so the new environment starts from
+> the same data? It would add a few minutes to the setup.
+
+Then run whichever they chose:
+
+    grove new feat/thing --seed-from main --json     # yes
+    grove new feat/thing --no-seed --json            # no
+
+Pass the flag explicitly either way. It records what was decided in the command
+itself, instead of leaving a reader to work out which default applied.
+
+**Say what the wait will be before you start it.** The copy dominates everything
+else `grove new` does and scales with the size of the data, not the repo. A small
+database adds seconds; a few gigabytes turn a ten-second command into several
+minutes with no output in between, and a `--timeout` that was generous without a
+copy may not be with one. The `seed` object in the result reports what was
+copied and how many bytes moved.
+
+Notes:
+
+- The two databases stay separate afterwards. Copying shares a starting point,
+  not a schema, so migrating one branch cannot reach the other.
+- `--seed-from` is obeyed as given: it copies even when the source looks empty.
+- If the repo sets `[seed] from` in worktree.toml the answer is already decided
+  for everyone and `grove new` copies without asking. `grove seed --json` still
+  reports what will happen, so you can still tell the user what to expect.
+- To copy into a worktree that already exists: `grove seed --from main`. It
+  replaces that worktree's data, so ask first there too.
 
 ## Running things
 

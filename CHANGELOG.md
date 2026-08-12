@@ -24,6 +24,19 @@
 - `[seed] from = "<worktree>"` in `worktree.toml`, to make that the default for
   every `grove new`, and `--no-seed` to override it.
 
+- **`grove seed`** reports what a new worktree could start from - which
+  databases exist, whether they are running, and how large they are - without
+  copying anything. `grove seed --from <worktree>` does the copy into a worktree
+  that already exists.
+
+  It exists because the asking has to happen one level above the CLI. `grove new`
+  cannot prompt an agent, so an agent without a way to look would either
+  interrupt about repos that have no database or quietly decide for the user.
+  The installed skill now tells it to run `grove seed --json` before every
+  `grove new`, put the question to the user with the size in it, and pass
+  `--seed-from` or `--no-seed` according to the answer - so the decision is the
+  user's and the command records which one was made.
+
 - Interactively, `grove new` measures the source and offers the copy with the
   size attached - the transfer dominates how long the command takes, and that is
   the fact needed to answer. An agent is never prompted: `--json` without

@@ -123,6 +123,7 @@ Open a second terminal, do the same for another branch, and both run at once.
 | `grove ls` / `grove ls --all` | this repo's worktrees / every one on the machine |
 | `grove logs [services...]` | container or captured process logs |
 | `grove hydrate` | re-copy gitignored files from the main worktree |
+| `grove seed` | what a new worktree could start from; `--from <wt>` copies it |
 | `grove adapt <step>` | migrate a repo: evidence -> decide -> render -> validate |
 | `grove install` | agent skill, slash command, hooks |
 | `grove doctor` | check the environment and the migration |
@@ -197,6 +198,30 @@ A named source is obeyed as given. `--seed-from` copies even when the database
 looks empty: the size check exists to decide whether to interrupt you, never to
 overrule you. A command that reports success and quietly did not do the thing is
 the worst outcome available.
+
+To see what is there without copying anything:
+
+```bash
+grove seed          # or --json
+```
+
+```
+main - what a new worktree could start from
+  db (postgres)  260 MB, about 1,400,000 rows
+
+copy it with: grove new <branch> --seed-from main
+```
+
+That command exists for the agent as much as for you. `grove new` cannot prompt
+an agent - a question nobody is reading is a hang - so the asking has to happen
+one level up, in the session. The installed skill tells the agent to run
+`grove seed --json` before every `grove new`, and to put the question to you with
+the size in it when it finds a database with data. It decides nothing on its own:
+if you say yes it passes `--seed-from`, if you say no it passes `--no-seed`, so
+the command records what was chosen.
+
+`grove seed --from <worktree>` does the copy into a worktree that already exists,
+replacing its data.
 
 ### Everything is scoped to your worktree
 

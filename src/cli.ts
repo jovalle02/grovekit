@@ -13,6 +13,7 @@ import { ls } from "./commands/ls.js";
 import { newWorktree } from "./commands/new.js";
 import { restart } from "./commands/restart.js";
 import { rm } from "./commands/rm.js";
+import { seedCommand } from "./commands/seed.js";
 import { run } from "./commands/run.js";
 import { status } from "./commands/status.js";
 import { up } from "./commands/up.js";
@@ -51,6 +52,7 @@ ${c.dim("USING A WORKTREE")}
   logs [services...]    Show container logs
   ls                  List this repo's worktrees; --all spans every repo
   hydrate             Re-copy gitignored files from the main worktree
+  seed                What a new worktree could start from; --from <wt> copies it
 
 ${c.dim("SETUP")}
   adapt <step>        evidence | decide | render | validate - migrate a repo
@@ -197,6 +199,14 @@ async function main(): Promise<void> {
         services,
         tail: Number(values.tail ?? "50"),
         follow: values.follow === true,
+      });
+      return;
+
+    case "seed":
+      await seedCommand({
+        json,
+        ...(values.from ? { from: values.from } : {}),
+        force: values.force === true,
       });
       return;
 

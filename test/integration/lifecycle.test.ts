@@ -893,6 +893,46 @@ describe("install never deletes what it just wrote", () => {
 });
 
 describe("seeding a new worktree", () => {
+  it("reports what a new worktree could start from, without touching anything", async () => {
+    // The command an agent runs before `grove new`, so it has a question to ask
+    // instead of a default to apply. Read-only: nothing here is started.
+    const repo = await makeRepo("seed-check");
+    const result = await runCli(["seed", "--json"], { cwd: repo, home: await home() });
+
+    assert.equal(result.code, 0, result.stderr);
+    const check = result.json<{ ok: boolean; from: string; databases: { service: string }[]; note?: string }>();
+    assert.equal(check.ok, true);
+
+    // The fixture declares a `db` service, but nothing is running, so there is
+    // nothing to measure - and saying so is the useful answer.
+    assert.match(check.note ?? "", /nothing is running|no database/);
+  });
+
+  it("says plainly when a stack has no database at all", async () => {
+    const repo = await makeRepo("seed-nodb");
+    // `layer` is what marks a service as a database, so demoting it is the same
+    // thing as not having one, without disturbing the groups that name it.
+    const toml = await read(path.join(repo, "worktree.toml"));
+    await write(path.join(repo, "worktree.toml"), toml.replace('layer = "data"', 'layer = "backend"'));
+    await git(repo, ["add", "-A"]);
+    await git(repo, ["commit", "-qm", "no database in this stack"]);
+
+    const result = await runCli(["seed", "--json"], { cwd: repo, home: await home() });
+    assert.equal(result.code, 0, result.stderr);
+
+    const check = result.json<{ databases: unknown[]; note?: string }>();
+    assert.deepEqual(check.databases, []);
+    assert.match(check.note ?? "", /no database services/);
+  });
+
+  it("refuses to copy a worktree into itself", async () => {
+    const repo = await makeRepo("seed-self");
+    const result = await runCli(["seed", "--from", "main", "--json"], { cwd: repo, home: await home() });
+
+    assert.equal(result.code, 1);
+    assert.match(result.json<{ error: string }>().error, /this worktree/);
+  });
+
   it("refuses an unknown --seed-from before creating anything", async () => {
     // The check runs before `git worktree add` on purpose: rolling a worktree
     // back is a much worse way to report a typo than never making one.

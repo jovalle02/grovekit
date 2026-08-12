@@ -121,16 +121,20 @@ Tell the user, briefly:
 - anything with `confidence: "low"` that they should check
 - the one-line commands they now have: `grove new <branch>`, `grove up`, `grove run <cmd>`
 
-If the repo has a database, ask one more question and act on the answer: **does a
-fresh stack end up with usable data on its own?** If migrations and a seed script
-run on boot, nothing more is needed and every worktree is identical for free. If
-the data got there by restoring a dump by hand, a new worktree starts empty and
-useless, so tell them about `grove new --seed-from <worktree>`, which copies the
-contents across before the application starts.
+If the repo has a database, run `grove seed --json` and ask one more question:
+**does a fresh stack end up with usable data on its own?**
 
-When you mention it, say what it costs: the copy is the slowest part of creating
-a worktree and scales with the size of the data. Add `[seed] from = "main"` to
-`worktree.toml` only if they want it on every `grove new` without asking.
+If migrations and a seed script run on boot, nothing more is needed - every
+worktree is identical for free. If the data got there by restoring a dump by
+hand, a new worktree starts empty and useless, so tell them about
+`grove new --seed-from <worktree>`, which copies the contents across before the
+application starts.
+
+Do not decide this for them, and do not add `[seed] from = "main"` to
+worktree.toml unless they ask for it: that setting makes every future
+`grove new` copy without asking, which is their call and not yours. When you
+raise it, say what it costs - the copy is the slowest part of creating a
+worktree and scales with the size of the data.
 
 ---
 

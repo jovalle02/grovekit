@@ -4,20 +4,18 @@ import { execSafe } from "./exec.js";
 export const PACKAGE_NAME = "grovekit";
 
 /**
- * Names this package installs, in the order we prefer to invoke them.
+ * The command, and the only binary this package installs.
  *
- * `grove` is the command. The `git-grove` binary exists because git dispatches
- * any unknown subcommand to `git-<name>` on PATH, so installing it makes
- * `git grove …` work — and that form can never be shadowed by another program,
- * because git resolves it itself rather than the shell. It depends on the binary
- * name only, which is why the package can be called something else entirely.
+ * One name on purpose. Every extra alias is another thing that can be shadowed,
+ * another string baked into someone's hook file, and another way for two
+ * installs to disagree about which one is real — all of which this project has
+ * already paid for once, when `wt` turned out to be Windows Terminal on every
+ * Windows PATH.
  *
- * `wt` and `ewt` are kept only so that hooks and shells written against the old
- * name keep working. **`wt` is Windows Terminal**: Windows ships `wt.exe` as an
- * app execution alias on every user's PATH, so whether it means this tool comes
- * down to PATH order — which is why it is last, and why `grove` exists at all.
+ * The names it has shipped under before are listed separately, in `install`, so
+ * that upgrading removes their hooks rather than leaving both installed.
  */
-export const BIN_NAMES = ["grove", "git-grove", "ewt", "wt"] as const;
+export const BIN_NAMES = ["grove"] as const;
 
 export interface ResolvedBin {
   /** What to invoke: a bin name if one resolves to us, else an npx fallback. */

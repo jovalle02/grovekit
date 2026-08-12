@@ -150,10 +150,20 @@ type HookEntry = { matcher?: string; hooks: { type: string; command: string }[] 
  * a command that quietly edits your settings.
  */
 function isOurHookCommand(command: string): boolean {
-  return new RegExp(
-    `^(${[...BIN_NAMES, `npx --no-install ${PACKAGE_NAME}`, "npx --no-install easy-worktree", "npx --no-install git-grove"].join("|")}) hook (session-start|session-end)$`,
-  ).test(command.trim());
+  // Every name this tool has ever installed as, not just the current one — the
+  // whole point is to remove a hook written under an older name.
+  const names = [
+    ...BIN_NAMES,
+    ...LEGACY_BIN_NAMES,
+    `npx --no-install ${PACKAGE_NAME}`,
+    ...LEGACY_PACKAGE_NAMES.map((p) => `npx --no-install ${p}`),
+  ];
+  return new RegExp(`^(${names.join("|")}) hook (session-start|session-end)$`).test(command.trim());
 }
+
+/** Binaries this package used to install. Shipped no longer; still cleaned up. */
+const LEGACY_BIN_NAMES = ["git-grove", "ewt", "wt"];
+const LEGACY_PACKAGE_NAMES = ["easy-worktree", "git-grove"];
 
 /** What this version writes. Never a deletion candidate — see `removeLegacy`. */
 const CURRENT_ARTIFACTS = [

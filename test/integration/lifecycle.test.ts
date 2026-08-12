@@ -519,7 +519,7 @@ describe("grove install", () => {
     // when neither resolves. Never a name that belongs to another program.
     assert.match(
       settings.hooks.SessionStart?.[0]?.hooks[0]?.command ?? "",
-      /^(grove|git-grove|ewt|wt|npx --no-install grovekit) hook session-start$/,
+      /^(grove|npx --no-install grovekit) hook session-start$/,
     );
 
     assert.match(await read(path.join(repo, ".gitignore")), /^\.wt\/$/m);

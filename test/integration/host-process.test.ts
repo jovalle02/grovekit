@@ -234,3 +234,130 @@ describe("host processes", () => {
     }
   });
 });
+
+/**
+ * The claim that makes several worktrees usable at once: stopping one leaves the
+ * others alone. Asserted rather than reasoned about, because the reasoning is
+ * exactly the kind that has been wrong before — containers are addressed by the
+ * Compose project name and processes by a per-worktree ledger, and both of those
+ * are one refactor away from leaking.
+ *
+ * No Docker here on purpose: host processes are the harder case, since they are
+ * ordinary OS processes with nothing namespacing them.
+ */
+describe("stopping one worktree leaves the others running", () => {
+  async function twoWorktrees(label: string) {
+    const repo = await makeRepo(label);
+    const home = await tmpDir("home");
+
+    await write(
+      path.join(repo, "server.mjs"),
+      [
+        "import http from 'node:http';",
+        "import fs from 'node:fs';",
+        "const cfg = JSON.parse(fs.readFileSync('generated/ports.json', 'utf8'));",
+        "http.createServer((_, res) => res.end('ok')).listen(cfg.port);",
+      ].join("\n"),
+    );
+    await write(
+      path.join(repo, "worktree.toml"),
+      [
+        "[project]",
+        'name = "two-up"',
+        "compose = []",
+        "",
+        "[[services]]",
+        'name = "api"',
+        'runtime = "host"',
+        'start = "node server.mjs"',
+        "health = { tcp = true }",
+        "",
+        "[render]",
+        '"generated/ports.json" = """',
+        '{ "port": ${WT_PORT_API} }',
+        '"""',
+      ].join("\n"),
+    );
+    await write(path.join(repo, ".gitignore"), ".wt/\ngenerated/\n");
+    await git(repo, ["add", "-A"]);
+    await git(repo, ["commit", "-qm", "two-up"]);
+
+    const created = await runCli(["new", "feat/second", "--json"], {
+      cwd: repo,
+      home,
+      timeoutMs: 120_000,
+    });
+    assert.equal(created.code, 0, created.stdout + created.stderr);
+    const second = created.json<{ worktree: { root: string } }>().worktree.root;
+
+    const first = await runCli(["up", "--json"], { cwd: repo, home, timeoutMs: 120_000 });
+    assert.equal(first.json<Manifest>().status, "ready");
+
+    return { repo, second, home };
+  }
+
+  const pidOf = async (root: string) =>
+    (await readJsonFile<Record<string, { pid: number }>>(path.join(root, ".wt", "processes.json")))
+      .api?.pid;
+
+  it("down in one worktree does not stop the other", async () => {
+    const { repo, second, home } = await twoWorktrees("two-down");
+    try {
+      const firstPid = await pidOf(repo);
+      const secondPid = await pidOf(second);
+      assert.ok(firstPid && secondPid, "both worktrees started a process");
+      assert.notEqual(firstPid, secondPid, "they are genuinely separate processes");
+
+      const down = await runCli(["down", "--json"], { cwd: repo, home, timeoutMs: 60_000 });
+      assert.equal(down.code, 0, down.stderr);
+      await new Promise((r) => setTimeout(r, 500));
+
+      assert.equal(isAlive(firstPid!), false, "the worktree we stopped is stopped");
+      assert.equal(isAlive(secondPid!), true, "the OTHER worktree is untouched");
+
+      // And still serving, not merely alive.
+      const status = await runCli(["status", "--json"], { cwd: second, home, timeoutMs: 60_000 });
+      assert.equal(status.json<Manifest>().status, "ready");
+    } finally {
+      await runCli(["down", "--json"], { cwd: second, home, timeoutMs: 60_000 }).catch(() => {});
+      await runCli(["down", "--json"], { cwd: repo, home, timeoutMs: 60_000 }).catch(() => {});
+    }
+  });
+
+  it("restart in one worktree does not touch the other", async () => {
+    const { repo, second, home } = await twoWorktrees("two-restart");
+    try {
+      const otherBefore = await pidOf(second);
+
+      const result = await runCli(["restart", "--json"], { cwd: repo, home, timeoutMs: 120_000 });
+      assert.equal(result.code, 0, result.stdout + result.stderr);
+
+      assert.equal(await pidOf(second), otherBefore, "the other worktree's process was never restarted");
+      assert.equal(isAlive(otherBefore!), true);
+    } finally {
+      await runCli(["down", "--json"], { cwd: second, home, timeoutMs: 60_000 }).catch(() => {});
+      await runCli(["down", "--json"], { cwd: repo, home, timeoutMs: 60_000 }).catch(() => {});
+    }
+  });
+
+  it("rm of one worktree leaves the other running", async () => {
+    // The destructive command, and the one where a mistake is unrecoverable.
+    const { repo, second, home } = await twoWorktrees("two-rm");
+    try {
+      const keepPid = await pidOf(repo);
+
+      const removed = await runCli(["rm", "feat-second", "--force", "--json"], {
+        cwd: repo,
+        home,
+        timeoutMs: 120_000,
+      });
+      assert.equal(removed.code, 0, removed.stdout + removed.stderr);
+
+      assert.equal(isAlive(keepPid!), true, "the worktree we kept is still running");
+      const status = await runCli(["status", "--json"], { cwd: repo, home, timeoutMs: 60_000 });
+      assert.equal(status.json<Manifest>().status, "ready");
+    } finally {
+      await runCli(["down", "--json"], { cwd: repo, home, timeoutMs: 60_000 }).catch(() => {});
+    }
+  });
+});

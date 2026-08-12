@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createRequire } from "node:module";
 import { parseArgs } from "node:util";
 import { adapt } from "./commands/adapt.js";
 import { down } from "./commands/down.js";
@@ -19,7 +20,17 @@ import { ConfigError } from "./core/config.js";
 import { ContextError } from "./core/context.js";
 import { c, fail } from "./core/output.js";
 
-const VERSION = "0.4.0";
+/**
+ * Read rather than written down, so `--version` cannot disagree with the package
+ * it came from. It already had: the constant said 0.4.0 while package.json said
+ * 0.5.0, and the number a user quotes in a bug report is this one.
+ *
+ * Resolved relative to this module, which sits one level under the package root
+ * whether it is running from `src/` through tsx or from `dist/`.
+ */
+const VERSION = (
+  createRequire(import.meta.url)("../package.json") as { version: string }
+).version;
 
 const HELP = `${c.bold("grove")} - every git worktree gets its own stack
 
@@ -55,6 +66,8 @@ ${c.dim("OPTIONS")}
   --path <dir>        Where to put the worktree                 ${c.dim("(new)")}
   --no-hydrate        Skip copying gitignored files             ${c.dim("(new)")}
   --no-up             Create the worktree without starting it   ${c.dim("(new)")}
+  --seed-from <wt>    Copy database contents from that worktree  ${c.dim("(new)")}
+  --no-seed           Never copy database contents, never ask  ${c.dim("(new)")}
   --remove            Remove containers and networks too        ${c.dim("(down)")}
   --delete-branch     Delete the branch as well                 ${c.dim("(rm)")}
   --keep-volumes      Keep the databases                        ${c.dim("(rm)")}
@@ -133,6 +146,8 @@ async function main(): Promise<void> {
       timeout: { type: "string" },
       tail: { type: "string", default: "50" },
       from: { type: "string" },
+      "seed-from": { type: "string" },
+      "no-seed": { type: "boolean", default: false },
       path: { type: "string" },
       "no-hydrate": { type: "boolean", default: false },
       "no-up": { type: "boolean", default: false },
@@ -197,6 +212,8 @@ async function main(): Promise<void> {
         ...(values.path ? { path: values.path } : {}),
         noHydrate: values["no-hydrate"] === true,
         noUp: values["no-up"] === true,
+        ...(values["seed-from"] ? { seedFrom: values["seed-from"] } : {}),
+        noSeed: values["no-seed"] === true,
         build: values.build === true,
         services: values.group ?? [],
         ...(values.timeout ? { timeoutMs: Number(values.timeout) * 1000 } : {}),

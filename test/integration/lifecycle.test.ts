@@ -672,6 +672,20 @@ describe("cli", () => {
     assert.match(result.json<{ error: string }>().error, /unknown command/);
   });
 
+  it("reports the version of the package it came from", async () => {
+    // Two hand-maintained constants that had already drifted: `--version` said
+    // 0.4.0 while package.json said 0.5.0. The number a user quotes in a bug
+    // report has to be the one they installed.
+    const { createRequire } = await import("node:module");
+    const pkg = createRequire(import.meta.url)("../../package.json") as { version: string };
+
+    const dir = await tmpDir("cli-version");
+    const result = await runCli(["--version"], { cwd: dir, home: await home() });
+
+    assert.equal(result.code, 0);
+    assert.equal(result.stdout.trim(), pkg.version);
+  });
+
   it("prints help without needing a repo", async () => {
     const dir = await tmpDir("cli-help");
     const result = await runCli(["--help"], { cwd: dir, home: await home() });

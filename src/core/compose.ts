@@ -1,5 +1,5 @@
 import path from "node:path";
-import { exec, execOrThrow, type ExecResult } from "./exec.js";
+import { execOrThrow, execSafe, type ExecResult } from "./exec.js";
 import { envKey } from "./naming.js";
 import type { Context } from "./context.js";
 
@@ -43,9 +43,17 @@ export function hasCompose(ctx: Context): boolean {
   return ctx.config.project.compose.length > 0;
 }
 
+/**
+ * Run Compose, reporting failure as an exit code rather than an exception.
+ *
+ * `execSafe` matters here: a repo whose services are all `runtime = "host"` is
+ * meant to work on a machine with no Docker at all, and `status`, `ls` and the
+ * session hook all route through here. Rejecting on a missing binary took the
+ * whole command down instead of reporting zero containers.
+ */
 export function compose(ctx: Context, args: string[], inherit = false): Promise<ExecResult> {
   if (!hasCompose(ctx)) return Promise.resolve({ code: 0, stdout: "", stderr: "" });
-  return exec("docker", composeArgs(ctx, ...args), {
+  return execSafe("docker", composeArgs(ctx, ...args), {
     cwd: ctx.root,
     env: composeEnv(ctx),
     inherit,

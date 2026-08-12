@@ -1,6 +1,6 @@
 import net from "node:net";
 import { createHash } from "node:crypto";
-import { exec } from "./exec.js";
+import { execSafe as exec } from "./exec.js";
 import { readJson, withLock, writeJson } from "./lock.js";
 import { leasesFile } from "./paths.js";
 

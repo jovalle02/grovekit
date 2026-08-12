@@ -85,13 +85,20 @@ export async function execSafe(
   }
 }
 
-/** Same as `exec`, but a non-zero exit throws. */
+/**
+ * Same as `exec`, but a non-zero exit throws.
+ *
+ * Built on `execSafe`, so a missing executable arrives as exit 127 and is
+ * reported as "`docker ...` exited 127" rather than as a raw ENOENT with a spawn
+ * stack trace. The caller wanted to know the command failed; which layer noticed
+ * is not their problem.
+ */
 export async function execOrThrow(
   file: string,
   args: string[] = [],
   opts: ExecOptions = {},
 ): Promise<ExecResult> {
-  const result = await exec(file, args, opts);
+  const result = await execSafe(file, args, opts);
   if (result.code !== 0) {
     const detail = (result.stderr || result.stdout).trim().split("\n").slice(-8).join("\n");
     throw new ExecError(`\`${file} ${args.join(" ")}\` exited ${result.code}\n${detail}`, result);

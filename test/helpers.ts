@@ -10,7 +10,7 @@ export const FIXTURE = path.join(REPO_ROOT, "examples", "sample-app");
 const CLI = path.join(REPO_ROOT, "src", "cli.ts");
 
 /**
- * Absolute, because the CLI is spawned with its cwd inside a temp worktree  - 
+ * Absolute, because the CLI is spawned with its cwd inside a temp worktree -
  * a bare `--import tsx` would be resolved from *there* and not found.
  */
 const TSX = import.meta.resolve("tsx");
@@ -192,3 +192,23 @@ export async function teardown(cwd: string, slug: string, home: string): Promise
 }
 
 export const dockerTests = process.env.WT_TEST_DOCKER === "1";
+
+/**
+ * Whether `docker compose` can be invoked at all.
+ *
+ * Distinct from `dockerTests`, which asks whether to boot real stacks. This asks
+ * a narrower question: can a command that delegates YAML resolution to Compose
+ * run here? `grove adapt` reads the repo's compose file through
+ * `docker compose config` rather than parsing YAML itself, so it needs the CLI
+ * even though it starts nothing. The hosted macOS runners have no Docker, and a
+ * test that cannot run there should say so instead of failing.
+ */
+export const composeCli = await (async () => {
+  const { execSafe } = await import("../src/core/exec.js");
+  const { code } = await execSafe("docker", ["compose", "version"]);
+  return code === 0;
+})();
+
+export const needsComposeCli = composeCli
+  ? false
+  : "needs the `docker compose` CLI (it resolves the compose file)";

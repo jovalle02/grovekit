@@ -2,7 +2,7 @@ import dns from "node:dns/promises";
 import { resolveBin } from "../core/bin.js";
 import { composeConfig, hasCompose } from "../core/compose.js";
 import { loadContext } from "../core/context.js";
-import { exec } from "../core/exec.js";
+import { execSafe as exec } from "../core/exec.js";
 import { c, printJson } from "../core/output.js";
 import { dockerCanPublish, findBindableProxyPort } from "../core/ports.js";
 import { isGitIgnored } from "../core/render.js";
@@ -67,8 +67,8 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
     hint: bin.verified
       ? undefined
       : bin.shadowedBy
-        ? `${bin.shadowedBy} has the name but is a different program. Use \`ewt\`, or run \`npm i -g grovekit\`.`
-        : "run `npm i -g grovekit`, or invoke it as `npx git-grove`",
+        ? `${bin.shadowedBy} has the name but is a different program. Put this one earlier on PATH, or run \`npm i -g grovekit\`.`
+        : "run `npm i -g grovekit`, or invoke it as `npx grovekit`",
   });
 
   let ctxOk = false;

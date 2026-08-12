@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { exec, execOrThrow } from "./exec.js";
+import { execSafe as exec, execOrThrow } from "./exec.js";
 import { isPortFree } from "./ports.js";
 import { proxyComposeFile, proxyDir } from "./paths.js";
 import type { Config } from "../types.js";

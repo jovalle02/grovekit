@@ -6,6 +6,7 @@ import {
   cleanup,
   git,
   makeRepo,
+  needsComposeCli,
   pathExists,
   read,
   readJsonFile,
@@ -589,7 +590,7 @@ describe("grove hook", () => {
   });
 });
 
-describe("grove adapt", () => {
+describe("grove adapt", { skip: needsComposeCli }, () => {
   it("reads the repo's compose file as data and classifies every service", async () => {
     const repo = await makeRepo("adapt");
     const result = await runCli(["adapt", "evidence", "--json"], { cwd: repo, home: await home() });

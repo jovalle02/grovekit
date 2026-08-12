@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { gitRoot } from "../core/context.js";
-import { exec } from "../core/exec.js";
+import { execSafe as exec } from "../core/exec.js";
 import { exists } from "../core/glob.js";
 import { readJson, writeJson } from "../core/lock.js";
 import { c, fail, printJson } from "../core/output.js";

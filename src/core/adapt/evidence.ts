@@ -1,5 +1,5 @@
 import path from "node:path";
-import { exec } from "../exec.js";
+import { execSafe as exec } from "../exec.js";
 import { exists } from "../glob.js";
 import type { Layer } from "../../types.js";
 
@@ -108,7 +108,7 @@ export async function findComposeFiles(root: string): Promise<string[]> {
  * Read the repo's compose setup as resolved data, not as text.
  *
  * `docker compose config --format json` expands anchors, `extends`, `include`,
- * profiles, `env_file` and `${VAR}` interpolation. Doing any of that ourselves  - 
+ * profiles, `env_file` and `${VAR}` interpolation. Doing any of that ourselves -
  * or, worse, regexing the YAML - reproduces a parser Docker already ships and
  * gets a different answer than the thing that will actually run.
  */

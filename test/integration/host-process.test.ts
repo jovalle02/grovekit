@@ -186,6 +186,54 @@ describe("host processes", () => {
     }
   });
 
+  it("does not accuse its own corpse of squatting when it restarts", async () => {
+    // The guard that catches an orphan on a leased port has one blind spot: the
+    // moment just after `up` killed the previous process itself. A socket can
+    // outlive the process that held it, and the guard cannot tell that socket
+    // from a stranger's - so it reported "not by a process this worktree
+    // started" about a process this worktree had started and stopped one line
+    // earlier, and told the user to hunt an orphan that did not exist.
+    //
+    // Simulated here with a real squatter, which is the same input the guard
+    // sees. The restart must still be attempted; the truthful failure is the
+    // process saying it could not bind, in its own log.
+    const { repo, home } = await hostRepo("host-corpse");
+    const { createServer } = await import("node:net");
+
+    await runCli(["up", "--json"], { cwd: repo, home, timeoutMs: 120_000 });
+    const manifest = await readJsonFile<Manifest>(path.join(repo, ".wt", "manifest.json"));
+    const port = Number(manifest.services[0]?.hostAddress?.split(":").pop());
+
+    const toml = await read(path.join(repo, "worktree.toml"));
+    await write(
+      path.join(repo, "worktree.toml"),
+      toml.replace('{ "port": ${WT_PORT_API} }', '{ "port": ${WT_PORT_API}, "extra": 1 }'),
+    );
+
+    // Take the port the instant the old process lets go of it.
+    const squatter = createServer();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        squatter.once("error", reject);
+        squatter.listen(port, "127.0.0.1", () => resolve());
+      }).catch(() => {
+        // The old process still holds it, which is the same situation from the
+        // guard's point of view. Either way the assertion below is the point.
+      });
+
+      const again = await runCli(["up", "--json"], { cwd: repo, home, timeoutMs: 120_000 });
+      const logs = (again.json<Manifest>().services[0]?.lastLogs ?? []).join(" ");
+      assert.doesNotMatch(
+        logs,
+        /not by a process this worktree started/,
+        "it blamed an orphan for a process it had just stopped itself",
+      );
+    } finally {
+      squatter.close();
+      await runCli(["down", "--json"], { cwd: repo, home, timeoutMs: 60_000 });
+    }
+  });
+
   it("restarts a running process when its generated config changed", async () => {
     // `grove up` is a no-op on a live stack, which meant editing worktree.toml and
     // re-running it silently kept serving the old ports: the change looked

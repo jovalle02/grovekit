@@ -178,6 +178,10 @@ async function startHostServices(
   for (const svc of startable) {
     const name = svc.config.name;
     const existing = running[name];
+
+    // Whether the thing that was on this port a moment ago was ours.
+    let ourOwnCorpse = false;
+
     if (existing && isAlive(existing.pid)) {
       // Already running and its config is unchanged - leave it be.
       if (!configChanged) {
@@ -193,12 +197,10 @@ async function startHostServices(
         console.log(c.dim(`restarting ${name} - its generated config changed`));
       }
       await stopProcess(ctx.root, name);
+      ourOwnCorpse = true;
 
       // The process is gone, but the socket it was listening on can outlive it
-      // by a moment. The occupied-port guard below cannot tell that socket from
-      // a stranger's, so give the kernel a bounded window to release it before
-      // asking. Without this the restart accuses the service of squatting on
-      // its own port.
+      // by a moment. Wait for it, so the common case starts against a free port.
       const port = ctx.leases[name];
       if (port !== undefined) await waitPortFree(port, PORT_RELEASE_MS);
     }
@@ -209,8 +211,17 @@ async function startHostServices(
     // process was holding. Catching it here is the only honest place - once ours
     // has started and died, a TCP probe cannot tell whose socket it is answering
     // and would report the stack ready against a stranger's.
+    //
+    // Except right after we killed the previous process ourselves. Then the
+    // premise is known false: whatever is still on that port is the corpse of
+    // something we started, not a stranger, and accusing it produces a confident
+    // wrong answer telling the user to hunt an orphan that does not exist. Under
+    // load the socket outlives the wait above often enough to matter, and it
+    // presented as a flaky test rather than as a bug. Start anyway - if the port
+    // really is still held, the new process fails to bind and says so in its own
+    // log, which is the accurate version of the same failure.
     const lease = ctx.leases[name];
-    if (lease !== undefined && (await tcpReachable(lease))) {
+    if (!ourOwnCorpse && lease !== undefined && (await tcpReachable(lease))) {
       svc.status = "unhealthy";
       svc.lastLogs = [
         `port ${lease} is already in use, and not by a process this worktree started.`,

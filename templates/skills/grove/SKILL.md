@@ -54,6 +54,9 @@ without a copy may not be with one. Say which databases are being copied and
 roughly how large they are, so the wait is expected rather than alarming. The
 `seed` object in the JSON reports the byte count per database once it is done.
 
+`--seed-from` is obeyed as given: it copies even when the source database looks
+empty, so what you asked for is what happens.
+
 Run it without `--seed-from` when you do not know whether the data matters: an
 agent is never prompted, so the default is simply not to copy. `--no-seed`
 suppresses it even when the repo configures a source in `[seed] from`.

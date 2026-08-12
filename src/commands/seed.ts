@@ -44,7 +44,25 @@ export interface SeedPlan {
  * "this will take a while, do you want it" is only worth asking once the answer
  * to "is there anything there" is yes.
  */
-export async function planSeed(selector: string, cwd: string): Promise<SeedPlan | null> {
+export async function planSeed(
+  selector: string,
+  cwd: string,
+  opts: {
+    /**
+     * Skip databases that look empty.
+     *
+     * True when deciding whether to *offer* a copy nobody asked for: an
+     * untouched Postgres database is several megabytes of system catalogues,
+     * and interrupting someone to offer a copy of that is noise.
+     *
+     * False when a source was named. Someone who wrote `--seed-from main` has
+     * already decided, and a size heuristic that silently overrules them
+     * produces the worst outcome available: a command that reports success and
+     * did not do the thing.
+     */
+    onlyWithData: boolean;
+  },
+): Promise<SeedPlan | null> {
   const source = await resolveWorktree(selector, cwd);
   const ctx = await loadContext(source.path);
 
@@ -54,7 +72,17 @@ export async function planSeed(selector: string, cwd: string): Promise<SeedPlan 
   for (const db of databases) {
     if (!db.running) continue;
     const size = await measure(db);
-    if (size && hasData(db, size)) pairs.push({ source: db, size });
+
+    // A source that was named gets copied even when it cannot be measured. The
+    // probe failing says nothing about whether the dump will: it is one more
+    // reason to attempt the copy and report a real error, rather than to cancel
+    // it and report nothing.
+    if (!size) {
+      if (!opts.onlyWithData) pairs.push({ source: db, size: { bytes: 0, rows: null } });
+      continue;
+    }
+    if (opts.onlyWithData && !hasData(db, size)) continue;
+    pairs.push({ source: db, size });
   }
 
   if (pairs.length === 0) return null;

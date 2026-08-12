@@ -244,7 +244,7 @@ async function resolveSeedPlan(repo: string, main: string, opts: NewOptions): Pr
 
   let plan: SeedPlan | null = null;
   try {
-    plan = await planSeed(selector ?? main, repo);
+    plan = await planSeed(selector ?? main, repo, { onlyWithData: !selector });
   } catch (err) {
     // Asked for by name and not found is an error. Falling back to the main
     // worktree and finding nothing usable is not.

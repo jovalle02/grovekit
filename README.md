@@ -193,6 +193,11 @@ from = "main"
 
 `--no-seed` overrides that and skips it.
 
+A named source is obeyed as given. `--seed-from` copies even when the database
+looks empty: the size check exists to decide whether to interrupt you, never to
+overrule you. A command that reports success and quietly did not do the thing is
+the worst outcome available.
+
 ### Everything is scoped to your worktree
 
 `down`, `restart` and `rm` cannot reach another worktree. Containers are

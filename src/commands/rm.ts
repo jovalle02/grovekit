@@ -5,6 +5,7 @@ import { removeProject } from "../core/docker.js";
 import { deleteBranch, isDirty, mainWorktree, pruneWorktrees, removeWorktree } from "../core/git.js";
 import { c, fail, printJson } from "../core/output.js";
 import { releaseLeases } from "../core/ports.js";
+import { readProcesses, stopProcess } from "../core/processes.js";
 import { unregister } from "../core/registry.js";
 import { resolveWorktree } from "../core/worktrees.js";
 import { leaseHostPorts } from "./up.js";
@@ -87,6 +88,13 @@ export async function rm(opts: RmOptions): Promise<void> {
     );
   }
 
+  // Host processes hold the worktree's directory open on Windows and its ports
+  // everywhere. Removing the directory without stopping them leaves orphans that
+  // nothing has a record of any more.
+  for (const svc of await hostServicesOf(target.path)) {
+    await stopProcess(target.path, svc);
+  }
+
   const slug = target.slug;
   let removed = { containers: 0, volumes: 0, networks: 0 };
 
@@ -163,4 +171,9 @@ export async function rm(opts: RmOptions): Promise<void> {
   if (opts.deleteBranch && !branchDeleted) {
     console.log(c.yellow(`  branch ${target.branch} was not deleted (unmerged? use --force)`));
   }
+}
+
+/** Names of processes this worktree has running, from its own ledger. */
+async function hostServicesOf(root: string): Promise<string[]> {
+  return Object.keys(await readProcesses(root));
 }

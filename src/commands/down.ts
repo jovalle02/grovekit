@@ -1,8 +1,9 @@
 import { compose, composePs } from "../core/compose.js";
 import { loadContext, resolveSelection } from "../core/context.js";
-import { buildRuntime } from "../core/health.js";
+import { buildRuntime, probeHosts } from "../core/health.js";
 import { buildManifest, writeManifest } from "../core/manifest.js";
 import { c, fail, printJson } from "../core/output.js";
+import { stopProcess } from "../core/processes.js";
 import { leaseHostPorts } from "./up.js";
 
 export interface DownOptions {
@@ -28,6 +29,18 @@ export async function down(opts: DownOptions): Promise<void> {
       ? ["down", "--remove-orphans"]
       : ["stop"];
 
+  // Host processes first. Pulling the containers out from under one that depends
+  // on them fills its log with connection errors for no reason, and `down` is
+  // meant to be the quiet, reversible command.
+  const wanted = selection.length > 0 ? new Set(selection) : null;
+  for (const svc of ctx.config.services) {
+    if (svc.runtime !== "host") continue;
+    if (wanted && !wanted.has(svc.name)) continue;
+    if (await stopProcess(ctx.root, svc.name) && !opts.json) {
+      console.log(`${c.green("✓")} stopped ${svc.name}`);
+    }
+  }
+
   const result = await compose(ctx, args, !opts.json);
   if (result.code !== 0) {
     fail(
@@ -41,6 +54,7 @@ export async function down(opts: DownOptions): Promise<void> {
   }
 
   const runtime = buildRuntime(ctx, await composePs(ctx));
+  await probeHosts(ctx, runtime);
   const manifest = await writeManifest(ctx, buildManifest(ctx, runtime));
 
   if (opts.json) {

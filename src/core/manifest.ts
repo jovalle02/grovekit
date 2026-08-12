@@ -41,8 +41,10 @@ function toManifestService(svc: RuntimeService): ManifestService {
     internalUrl: svc.internalUrl,
     hostAddress: svc.hostAddress,
     health,
-    // There are no logs to fetch for a process this tool does not run.
-    logs: svc.config.runtime === "host" ? "" : `wt logs ${svc.config.name}`,
+    // A host process we started has a captured log; one we merely observe has
+    // nothing to show, because its output went wherever the developer ran it.
+    logs:
+      svc.config.runtime === "host" && !svc.config.start ? "" : `wt logs ${svc.config.name}`,
   };
   if (svc.lastLogs?.length) entry.lastLogs = svc.lastLogs;
   return entry;

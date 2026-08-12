@@ -1,11 +1,18 @@
 import { compose, composePs } from "../core/compose.js";
 import { loadContext, resolveSelection, type Context } from "../core/context.js";
 import { buildEnv } from "../core/env.js";
-import { buildRuntime, probeHosts, waitReady, type RuntimeService } from "../core/health.js";
+import {
+  buildRuntime,
+  probeHosts,
+  tcpReachable,
+  waitReady,
+  type RuntimeService,
+} from "../core/health.js";
 import { buildManifest, writeManifest } from "../core/manifest.js";
 import { c, fail, printJson, printManifest } from "../core/output.js";
 import { leasePort } from "../core/ports.js";
 import { ensureProxy } from "../core/proxy.js";
+import { isAlive, readProcesses, reapProcesses, startProcess } from "../core/processes.js";
 import { renderFiles } from "../core/render.js";
 import { envKey } from "../core/naming.js";
 import type { Manifest } from "../types.js";
@@ -65,16 +72,28 @@ export async function up(opts: UpOptions): Promise<Manifest> {
   const runtime = buildRuntime(ctx, await composePs(ctx));
   markFailedToStart(runtime, preStopped, opts.services.length > 0 ? new Set(selection) : null);
 
+  // Render before launching: a host process reads its generated config at
+  // startup, so writing it afterwards would hand it the previous run's ports.
+  await applyRender(ctx, runtime, !opts.json && !opts.quiet);
+  await startHostServices(ctx, runtime, selection, opts);
+
   if (!opts.json && !opts.quiet) {
     const pending = runtime.filter((s) => s.status === "starting").map((s) => s.config.name);
     if (pending.length > 0) console.log(c.dim(`waiting for ${pending.join(", ")}…`));
   }
 
-  const { ok } = await waitReady(ctx, runtime, opts.timeoutMs ?? ctx.config.healthTimeoutMs);
+  await waitReady(ctx, runtime, opts.timeoutMs ?? ctx.config.healthTimeoutMs);
   await probeHosts(ctx, runtime);
 
-  const rendered = await applyRender(ctx, runtime, !opts.json && !opts.quiet);
-  const manifest = await writeManifest(ctx, buildManifest(ctx, runtime, rendered));
+  const manifest = await writeManifest(
+    ctx,
+    buildManifest(ctx, runtime, Object.keys(ctx.config.render).sort()),
+  );
+
+  // Read the verdict from the final state, not from waitReady's return value:
+  // `probeHosts` runs after it and can still demote a host service whose process
+  // has since died. Taking the earlier answer would exit 0 on a dead stack.
+  const ok = manifest.status !== "unhealthy";
 
   // Non-zero on failure: agents and CI branch on this, not on parsing the output.
   if (!ok) process.exitCode = 1;
@@ -108,6 +127,68 @@ export function markFailedToStart(
     // `requested === null` means "everything", so everything was asked for.
     const askedFor = requested === null || requested.has(name);
     if (askedFor || !preStopped.has(name)) svc.status = "starting";
+  }
+}
+
+/**
+ * Launch the host processes this worktree is responsible for.
+ *
+ * Idempotent in the way that matters: a service whose process is already alive
+ * is left running rather than started twice. `wt up` is meant to be safe to run
+ * whenever you are unsure, and a second server fighting the first over the
+ * ports would be the worst possible answer to that.
+ */
+async function startHostServices(
+  ctx: Context,
+  runtime: RuntimeService[],
+  selection: string[],
+  opts: UpOptions,
+): Promise<void> {
+  const wanted = new Set(opts.services.length > 0 ? selection : ctx.config.services.map((s) => s.name));
+  const startable = runtime.filter(
+    (s) => s.config.runtime === "host" && s.config.start && wanted.has(s.config.name),
+  );
+  if (startable.length === 0) return;
+
+  await reapProcesses(ctx.root);
+  const running = await readProcesses(ctx.root);
+  const env = buildEnv(ctx, buildManifest(ctx, runtime));
+
+  for (const svc of startable) {
+    const name = svc.config.name;
+    const existing = running[name];
+    if (existing && isAlive(existing.pid)) {
+      svc.status = "starting";
+      continue;
+    }
+
+    // Someone is already on the port we lease for this service, and it is not a
+    // process of ours. Almost always an orphan of a previous run: leases are
+    // deterministic, so the port a worktree gets is exactly the one its own last
+    // process was holding. Catching it here is the only honest place — once ours
+    // has started and died, a TCP probe cannot tell whose socket it is answering
+    // and would report the stack ready against a stranger's.
+    const lease = ctx.leases[name];
+    if (lease !== undefined && (await tcpReachable(lease))) {
+      svc.status = "unhealthy";
+      svc.lastLogs = [
+        `port ${lease} is already in use, and not by a process this worktree started.`,
+        `Most likely an orphan from an earlier run. Find it with:`,
+        process.platform === "win32"
+          ? `  Get-NetTCPConnection -LocalPort ${lease} -State Listen`
+          : `  lsof -nP -iTCP:${lease} -sTCP:LISTEN`,
+        `Then \`wt gc\`, or stop it by hand.`,
+      ];
+      continue;
+    }
+
+    const record = await startProcess(ctx.root, name, svc.config.start ?? "", env);
+    // It has a pid, so it is our responsibility now: `starting` puts it into the
+    // readiness gate, where it either answers or reports its own log.
+    svc.status = "starting";
+    if (!opts.json && !opts.quiet) {
+      console.log(`${c.green("✓")} started ${name} ${c.dim(`(pid ${record.pid}, logs: ${record.log})`)}`);
+    }
   }
 }
 

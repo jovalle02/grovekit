@@ -2,6 +2,7 @@ import net from "node:net";
 import { compose, composeLogs, type ComposePs } from "./compose.js";
 import { internalUrl, serviceUrl, type Context } from "./context.js";
 import { sleep } from "./exec.js";
+import { isAlive, readProcesses, tailLog } from "./processes.js";
 import type { ServiceConfig, ServiceStatus } from "../types.js";
 
 const POLL_INTERVAL_MS = 500;
@@ -79,12 +80,37 @@ export async function probeOnce(ctx: Context, runtime: RuntimeService[]): Promis
  * status that means "nobody asked for this", which is exactly right here.
  */
 export async function probeHosts(ctx: Context, runtime: RuntimeService[]): Promise<void> {
+  const running = await readProcesses(ctx.root);
+
   await Promise.all(
     runtime
       .filter((s) => s.config.runtime === "host")
       .map(async (svc) => {
+        // Someone upstream already reached a verdict and attached the evidence
+        // for it — a port collision detected before starting, or a process seen
+        // to die while waiting. Re-deriving it from the port here would discard
+        // both the status and the explanation.
+        if (svc.status === "unhealthy") return;
+
         const lease = ctx.leases[svc.config.name];
-        svc.status = lease !== undefined && (await tcpReachable(lease)) ? "ready" : "not-started";
+        const listening = lease !== undefined && (await tcpReachable(lease));
+        const record = running[svc.config.name];
+
+        // For a service we started, the pid is the authority and the open port
+        // is only corroboration. A TCP probe cannot tell "my process is up" from
+        // "somebody else is on that port" — and leases are deterministic, so an
+        // orphan from a previous run is precisely the process most likely to be
+        // sitting on it. Port-first reports `ready` for a stack that crashed on
+        // startup, which is the worst answer available.
+        if (svc.config.start) {
+          if (!record) svc.status = "not-started";
+          else if (!isAlive(record.pid)) svc.status = "unhealthy";
+          else svc.status = listening ? "ready" : "starting";
+          return;
+        }
+
+        // Nothing we started, so the port is all the evidence there is.
+        svc.status = listening ? "ready" : "not-started";
       }),
   );
 }
@@ -129,7 +155,19 @@ export async function waitReady(
       const svc = pending.get(name);
       if (!svc) continue;
       svc.status = "unhealthy";
-      svc.lastLogs = await composeLogs(ctx, name, LOG_TAIL);
+      svc.lastLogs = await logsFor(ctx, svc, LOG_TAIL);
+      pending.delete(name);
+    }
+
+    // The same rule for a host process we started: once it is gone it is never
+    // going to answer, and its log is the only thing that explains why.
+    const ledger = await readProcesses(ctx.root);
+    for (const [name, svc] of [...pending]) {
+      if (svc.config.runtime !== "host" || !svc.config.start) continue;
+      const record = ledger[name];
+      if (record && isAlive(record.pid)) continue;
+      svc.status = "unhealthy";
+      svc.lastLogs = await logsFor(ctx, svc, LOG_TAIL);
       pending.delete(name);
     }
     if (pending.size === 0) break;
@@ -141,11 +179,18 @@ export async function waitReady(
   // Whatever is still pending timed out. Attach logs so the failure explains itself.
   for (const svc of pending.values()) {
     svc.status = "unhealthy";
-    svc.lastLogs = await composeLogs(ctx, svc.config.name, LOG_TAIL);
+    svc.lastLogs = await logsFor(ctx, svc, LOG_TAIL);
   }
 
   const failed = runtime.filter((s) => s.status === "unhealthy");
   return { ok: failed.length === 0, failed };
+}
+
+/** Compose logs for a container, our own capture file for a process we started. */
+async function logsFor(ctx: Context, svc: RuntimeService, lines: number): Promise<string[]> {
+  return svc.config.runtime === "host"
+    ? tailLog(ctx.root, svc.config.name, lines)
+    : composeLogs(ctx, svc.config.name, lines);
 }
 
 async function exitedServices(ctx: Context, names: string[]): Promise<string[]> {
@@ -207,12 +252,21 @@ async function probe(ctx: Context, svc: RuntimeService): Promise<boolean> {
     case "tcp": {
       const lease = ctx.leases[svc.config.name];
       if (lease === undefined) return false;
+
+      // For a process we started, an open port is not sufficient evidence.
+      // Leases are deterministic, so the port a worktree gets is exactly the one
+      // an orphan of its own previous run is holding — and answering `ready`
+      // against a stranger's socket is worse than answering `starting`.
+      if (svc.config.runtime === "host" && svc.config.start) {
+        const record = (await readProcesses(ctx.root))[svc.config.name];
+        if (!record || !isAlive(record.pid)) return false;
+      }
       return tcpReachable(lease);
     }
   }
 }
 
-function tcpReachable(port: number): Promise<boolean> {
+export function tcpReachable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const socket = new net.Socket();
     const done = (ok: boolean) => {

@@ -56,6 +56,15 @@ export interface ServiceConfig {
   port?: number;
   /** Publish a leased host port (for things the proxy can't front, e.g. Postgres). */
   hostPort?: boolean;
+  /**
+   * `host` services only: how to launch it.
+   *
+   * Present, and `wt up` starts the process with the worktree's environment
+   * injected, tracks its pid and waits for it to answer — the same contract a
+   * container gets. Absent, and the service is a port reservation this tool
+   * merely observes, for something you start yourself.
+   */
+  start?: string;
   health: HealthCheck;
 }
 

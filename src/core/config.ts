@@ -212,6 +212,16 @@ function parseServices(value: unknown): ServiceConfig[] {
     if (svc.port !== undefined) config.port = num(svc.port, `services[${i}].port`);
     if (svc.host_port !== undefined) config.hostPort = bool(svc.host_port, `services[${i}].host_port`);
 
+    if (svc.start !== undefined) {
+      config.start = str(svc.start, `services[${i}].start`);
+      if (runtime !== "host") {
+        throw new ConfigError(
+          `services[${i}] ("${name}") sets \`start\`, which only applies to runtime = "host". ` +
+            `A Compose service is started by Compose.`,
+        );
+      }
+    }
+
     if (runtime === "host") {
       // A host process has no container and no Docker network, so the two things
       // the proxy needs — a route to a container, and an internal address space

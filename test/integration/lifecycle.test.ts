@@ -877,3 +877,54 @@ describe("install never deletes what it just wrote", () => {
     }
   });
 });
+
+describe("seeding a new worktree", () => {
+  it("refuses an unknown --seed-from before creating anything", async () => {
+    // The check runs before `git worktree add` on purpose: rolling a worktree
+    // back is a much worse way to report a typo than never making one.
+    const repo = await makeRepo("seed-unknown");
+    const result = await runCli(["new", "feat/x", "--seed-from", "no-such-worktree", "--json"], {
+      cwd: repo,
+      home: await home(),
+    });
+
+    assert.equal(result.code, 1);
+    assert.match(result.json<{ error: string }>().error, /no-such-worktree/);
+
+    const listed = await git(repo, ["worktree", "list", "--porcelain"]);
+    assert.equal((listed.match(/^worktree /gm) ?? []).length, 1, "no worktree was created");
+    assert.equal(
+      await pathExists(path.join(path.dirname(repo), `${path.basename(repo)}-feat-x`)),
+      false,
+    );
+  });
+
+  it("never asks a caller that cannot answer", async () => {
+    // `--json` is how an agent drives this. A prompt there would hang the
+    // session on a question nobody is reading.
+    const repo = await makeRepo("seed-noprompt");
+    const result = await runCli(["new", "feat/quiet", "--no-up", "--json"], {
+      cwd: repo,
+      home: await home(),
+    });
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(result.json<{ seed: unknown }>().seed, null);
+  });
+
+  it("skips the copy entirely with --no-seed, even when one is configured", async () => {
+    const repo = await makeRepo("seed-off");
+    const toml = await read(path.join(repo, "worktree.toml"));
+    await write(path.join(repo, "worktree.toml"), `${toml}\n[seed]\nfrom = "main"\n`);
+    await git(repo, ["add", "-A"]);
+    await git(repo, ["commit", "-qm", "seed config"]);
+
+    const result = await runCli(["new", "feat/no-seed", "--no-up", "--no-seed", "--json"], {
+      cwd: repo,
+      home: await home(),
+    });
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(result.json<{ seed: unknown }>().seed, null);
+  });
+});

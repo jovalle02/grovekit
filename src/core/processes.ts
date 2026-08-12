@@ -45,9 +45,9 @@ export function isAlive(pid: number): boolean {
 /**
  * Start a service this tool does not containerise, and remember its pid.
  *
- * Detached and with its output redirected to a file, because `wt up` has to
+ * Detached and with its output redirected to a file, because `grove up` has to
  * return: the process outlives the command that started it, exactly as a
- * container does. That is what makes `wt new` a single command rather than a
+ * container does. That is what makes `grove new` a single command rather than a
  * setup step followed by "now run this in another terminal".
  */
 export async function startProcess(
@@ -68,7 +68,7 @@ export async function startProcess(
     windowsHide: true,
   });
 
-  // Let `wt up` exit without waiting on it.
+  // Let `grove up` exit without waiting on it.
   child.unref();
 
   if (child.pid === undefined) throw new Error(`could not start \`${command}\``);
@@ -90,15 +90,15 @@ export async function startProcess(
 /**
  * A supervisor process, passed to `node -e`.
  *
- * It exists because on Windows the two properties `wt up` needs are mutually
+ * It exists because on Windows the two properties `grove up` needs are mutually
  * exclusive in a single spawn — measured, not assumed:
  *
- *   attached   output is captured, but the process dies when `wt` exits
+ *   attached   output is captured, but the process dies when `grove` exits
  *   detached   the process survives, but its output goes nowhere, because a
  *              detached process has no console and the handles it inherited
  *              write into nothing
  *
- * So `wt` detaches *this*, and this opens the log itself and runs the real
+ * So `grove` detaches *this*, and this opens the log itself and runs the real
  * command as an ordinary attached child. Both properties then hold, on every
  * platform. It is inlined rather than shipped as a file so that the path is the
  * same whether the CLI is running from `dist/` or through tsx from `src/`.
@@ -120,7 +120,7 @@ const child = spawn(rest.join(" "), {
 // is exactly what the pid in .wt/processes.json is taken to mean.
 child.on("exit", (code, signal) => process.exit(signal ? 1 : (code === null ? 0 : code)));
 child.on("error", (err) => {
-  fs.writeSync(fd, "easy-worktree: could not start: " + err.message + "\\n");
+  fs.writeSync(fd, "git-grove: could not start: " + err.message + "\\n");
   process.exit(1);
 });
 `;
@@ -131,7 +131,7 @@ child.on("error", (err) => {
  * The pid we hold is the supervisor, not the application. Build tools commonly
  * launch the real process as a child, and an orchestrator may start a dozen.
  * Signalling only the pid leaves all of them running and holding the ports —
- * which looks exactly like `wt down` having done nothing.
+ * which looks exactly like `grove down` having done nothing.
  */
 export async function stopProcess(root: string, service: string): Promise<boolean> {
   const ledger = await readProcesses(root);

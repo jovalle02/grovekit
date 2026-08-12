@@ -56,19 +56,19 @@ async function sessionStart(opts: HookOptions): Promise<void> {
     return;
   }
 
-  const lines = [`easy-worktree: worktree \`${ctx.slug}\` (branch ${ctx.branch}), stack ${manifest.status}.`];
+  const lines = [`git-grove: worktree \`${ctx.slug}\` (branch ${ctx.branch}), stack ${manifest.status}.`];
 
   if (manifest.status === "ready") {
     lines.push(`  ${manifest.baseUrl ?? "no ingress"} — details in .wt/manifest.json.`);
   } else if (manifest.status === "unhealthy") {
     const broken = manifest.services.filter((s) => s.status === "unhealthy").map((s) => s.name);
-    lines.push(`  unhealthy: ${broken.join(", ")}. Run \`wt logs ${broken[0]}\` before anything else.`);
+    lines.push(`  unhealthy: ${broken.join(", ")}. Run \`grove logs ${broken[0]}\` before anything else.`);
   } else {
-    lines.push("  Run `wt up` (or `wt up --group <name>`) before running anything against it.");
+    lines.push("  Run `grove up` (or `grove up --group <name>`) before running anything against it.");
   }
 
   if (others.length > 0) {
-    lines.push(`  ${others.length} other worktrees, ${running} running. \`wt ls\` / \`wt gc --dry-run\`.`);
+    lines.push(`  ${others.length} other worktrees, ${running} running. \`grove ls\` / \`grove gc --dry-run\`.`);
   }
 
   console.log(lines.join("\n"));
@@ -77,7 +77,7 @@ async function sessionStart(opts: HookOptions): Promise<void> {
 /**
  * `SessionEnd` has no turn to render into, so it cannot ask a question — which
  * means the only thing safe to automate here is the reversible one. `down` keeps
- * volumes, data and port leases; `wt up` brings it all back in seconds. Removal
+ * volumes, data and port leases; `grove up` brings it all back in seconds. Removal
  * stays manual, forever.
  */
 async function sessionEnd(opts: HookOptions): Promise<void> {
@@ -86,5 +86,5 @@ async function sessionEnd(opts: HookOptions): Promise<void> {
 
   const result = await compose(ctx, ["stop"]);
   if (opts.json) printJson({ ok: result.code === 0, action: "stop", worktree: ctx.slug });
-  else if (result.code === 0) console.log(`easy-worktree: stopped ${ctx.slug} (data kept).`);
+  else if (result.code === 0) console.log(`git-grove: stopped ${ctx.slug} (data kept).`);
 }

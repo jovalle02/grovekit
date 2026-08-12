@@ -49,11 +49,11 @@ export async function ls(opts: LsOptions): Promise<void> {
   const worktrees = await gitWorktrees(root);
 
   const entries: Entry[] = await Promise.all(
-    worktrees.map(async (wt) => {
-      const manifest: Manifest | null = await readManifest(wt.path);
+    worktrees.map(async (grove) => {
+      const manifest: Manifest | null = await readManifest(grove.path);
       return {
-        path: wt.path,
-        branch: wt.branch,
+        path: grove.path,
+        branch: grove.branch,
         slug: manifest?.worktree ?? null,
         status: manifest?.status ?? "unknown",
         baseUrl: manifest?.baseUrl ?? null,

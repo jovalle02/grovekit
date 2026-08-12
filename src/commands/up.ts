@@ -29,7 +29,7 @@ export interface UpOptions {
   build: boolean;
   noDeps: boolean;
   timeoutMs?: number;
-  /** Worktree to act on. Defaults to the process cwd; `wt new` passes the new one. */
+  /** Worktree to act on. Defaults to the process cwd; `grove new` passes the new one. */
   cwd?: string;
   /** Return the manifest instead of printing it. Used when `up` is a sub-step. */
   quiet?: boolean;
@@ -68,7 +68,7 @@ export async function up(opts: UpOptions): Promise<Manifest> {
       {
         ok: false,
         error: `docker compose up failed (exit ${result.code})`,
-        hint: "run `wt doctor` to check the environment, or `docker compose config` to inspect the merged file",
+        hint: "run `grove doctor` to check the environment, or `docker compose config` to inspect the merged file",
         logs: (result.stderr || result.stdout).trim().split("\n").slice(-20),
       },
       opts.json,
@@ -140,7 +140,7 @@ export function markFailedToStart(
  * Launch the host processes this worktree is responsible for.
  *
  * Idempotent in the way that matters: a service whose process is already alive
- * is left running rather than started twice. `wt up` is meant to be safe to run
+ * is left running rather than started twice. `grove up` is meant to be safe to run
  * whenever you are unsure, and a second copy fighting the first over the ports
  * would be the worst possible answer to that.
  */
@@ -173,7 +173,7 @@ async function startHostServices(
       }
 
       // Its generated config just changed underneath it, and it read that file
-      // at startup. `wt up` is otherwise a no-op on a live stack, which meant
+      // at startup. `grove up` is otherwise a no-op on a live stack, which meant
       // editing worktree.toml and re-running it silently kept serving the old
       // ports — the change appeared to have been applied and had not been.
       if (!opts.json && !opts.quiet) {
@@ -197,7 +197,7 @@ async function startHostServices(
         process.platform === "win32"
           ? `  Get-NetTCPConnection -LocalPort ${lease} -State Listen`
           : `  lsof -nP -iTCP:${lease} -sTCP:LISTEN`,
-        `Then \`wt gc\`, or stop it by hand.`,
+        `Then \`grove gc\`, or stop it by hand.`,
       ];
       continue;
     }
@@ -218,7 +218,7 @@ async function startHostServices(
  * Shared by `up` and `status` so that a worktree's generated config is refreshed
  * by any command that looks at it, not only by the one that starts things. A
  * host process without a `start` is launched by the developer directly, and by
- * then the last `wt` command they ran may well have been `wt status`.
+ * then the last `grove` command they ran may well have been `grove status`.
  *
  * A failed render is reported and does not abort: the containers are already up,
  * and taking the stack down over a typo in a template would be a worse outcome

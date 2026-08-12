@@ -10,9 +10,9 @@ import type { Manifest, WorktreeState } from "../types.js";
 export interface WorktreeInfo {
   path: string;
   branch: string;
-  /** Null until the worktree has run a `wt` command and written `.wt/state.json`. */
+  /** Null until the worktree has run a `grove` command and written `.wt/state.json`. */
   slug: string | null;
-  /** The main worktree cannot be removed, and `wt rm` must refuse it. */
+  /** The main worktree cannot be removed, and `grove rm` must refuse it. */
   main: boolean;
   manifest: Manifest | null;
 }
@@ -29,17 +29,17 @@ export async function readState(root: string): Promise<WorktreeState | null> {
   return state;
 }
 
-/** Every worktree git knows about, with whatever `wt` state each one carries. */
+/** Every worktree git knows about, with whatever `grove` state each one carries. */
 export async function surveyWorktrees(cwd = process.cwd()): Promise<WorktreeInfo[]> {
   const root = await gitRoot(cwd);
   const list = await listWorktrees(root);
 
   return Promise.all(
-    list.map(async (wt, index) => {
-      const [state, manifest] = await Promise.all([readState(wt.path), readManifest(wt.path)]);
+    list.map(async (grove, index) => {
+      const [state, manifest] = await Promise.all([readState(grove.path), readManifest(grove.path)]);
       return {
-        path: wt.path,
-        branch: wt.branch,
+        path: grove.path,
+        branch: grove.branch,
         slug: state?.slug ?? manifest?.worktree ?? null,
         main: index === 0,
         manifest,
@@ -78,7 +78,7 @@ export async function resolveWorktree(selector: string, cwd = process.cwd()): Pr
 /**
  * Slugs that are legitimately in use anywhere on this machine.
  *
- * `wt gc` deletes what is *not* in this set, so a false negative destroys a live
+ * `grove gc` deletes what is *not* in this set, so a false negative destroys a live
  * stack. Both sources therefore contribute: the registry covers other repos, and
  * the git listing covers worktrees of this repo that predate the registry.
  */
@@ -94,8 +94,8 @@ export async function liveSlugs(cwd = process.cwd()): Promise<Set<string>> {
   }
 
   try {
-    for (const wt of await surveyWorktrees(cwd)) {
-      if (wt.slug) slugs.add(wt.slug);
+    for (const grove of await surveyWorktrees(cwd)) {
+      if (grove.slug) slugs.add(grove.slug);
     }
   } catch {
     // Not in a repo — the registry alone has to answer.

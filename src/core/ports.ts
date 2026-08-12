@@ -28,8 +28,8 @@ export function isPortFree(port: number): Promise<boolean> {
  *
  * An existing lease is returned WITHOUT probing: our own container is holding
  * that port while the stack is up, so a liveness probe would report it busy and
- * we would pointlessly renumber on every `wt up`. Leases for dead worktrees are
- * reclaimed by `wt gc`, not here.
+ * we would pointlessly renumber on every `grove up`. Leases for dead worktrees are
+ * reclaimed by `grove gc`, not here.
  */
 export async function leasePort(key: string): Promise<number> {
   const file = leasesFile();
@@ -52,7 +52,7 @@ export async function leasePort(key: string): Promise<number> {
       return port;
     }
     throw new Error(
-      `No free port in ${RANGE_START}-${RANGE_START + RANGE_SIZE}. Try \`wt gc\` to reclaim leases.`,
+      `No free port in ${RANGE_START}-${RANGE_START + RANGE_SIZE}. Try \`grove gc\` to reclaim leases.`,
     );
   });
 }

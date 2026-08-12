@@ -48,7 +48,7 @@ const ctx: Context = {
 describe("stackStatus", () => {
   // The single most load-bearing rule in the manifest: `ready` is computed over
   // the SCOPE, not over every declared service. Get this wrong and a partial
-  // startup reports a broken stack, which makes `wt up --group` unusable.
+  // startup reports a broken stack, which makes `grove up --group` unusable.
   it("ignores not-started services entirely", () => {
     assert.equal(
       stackStatus([service("api", "ready"), service("db", "ready"), service("web", "not-started")]),
@@ -85,7 +85,7 @@ describe("stackStatus", () => {
 describe("markFailedToStart", () => {
   // The bug this exists to prevent: a service that crashes before the first
   // `compose ps` is reported `stopped`, so `waitReady` never watches it, never
-  // marks it unhealthy and never attaches its logs. `wt up` then exits 0 with
+  // marks it unhealthy and never attaches its logs. `grove up` then exits 0 with
   // status `starting` — apparent success for a broken stack.
   it("treats a container that failed to start as starting, so it gets watched", () => {
     const runtime = [service("api", "stopped"), service("db", "ready")];
@@ -94,7 +94,7 @@ describe("markFailedToStart", () => {
   });
 
   it("leaves a service alone that was already stopped and was not asked for", () => {
-    // `wt up api` must not declare a `web` you stopped yesterday to be broken.
+    // `grove up api` must not declare a `web` you stopped yesterday to be broken.
     const runtime = [service("api", "starting"), service("web", "stopped")];
     markFailedToStart(runtime, new Set(["web"]), new Set(["api"]));
     assert.equal(runtime[1]?.status, "stopped");
@@ -161,8 +161,8 @@ describe("buildManifest", () => {
     assert.equal(manifest.services.find((s) => s.name === "db")?.health, "exec");
   });
 
-  it("prefixes declared commands with `wt run` so they are copy-pasteable", () => {
-    assert.deepEqual(buildManifest(ctx, runtime).commands, { e2e: "wt run node e2e.mjs" });
+  it("prefixes declared commands with `grove run` so they are copy-pasteable", () => {
+    assert.deepEqual(buildManifest(ctx, runtime).commands, { e2e: "grove run node e2e.mjs" });
   });
 
   it("attaches logs to a failed service so the failure explains itself", () => {

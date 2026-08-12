@@ -1,11 +1,13 @@
 {
-  "name": "easy-worktree",
-  "version": "0.3.0",
-  "description": "Every git worktree gets its own fully-deployed, independently addressable stack.",
+  "name": "git-grove",
+  "version": "0.4.0",
+  "description": "A grove of git worktrees: every branch gets its own running stack, on its own ports.",
   "type": "module",
   "bin": {
-    "wt": "./dist/cli.js",
-    "ewt": "./dist/cli.js"
+    "grove": "./dist/cli.js",
+    "git-grove": "./dist/cli.js",
+    "ewt": "./dist/cli.js",
+    "wt": "./dist/cli.js"
   },
   "exports": {
     ".": "./dist/index.js"
@@ -19,12 +21,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jovalle02/easy-worktree.git"
+    "url": "git+https://github.com/jovalle02/git-grove.git"
   },
   "bugs": {
-    "url": "https://github.com/jovalle02/easy-worktree/issues"
+    "url": "https://github.com/jovalle02/git-grove/issues"
   },
-  "homepage": "https://github.com/jovalle02/easy-worktree#readme",
+  "homepage": "https://github.com/jovalle02/git-grove#readme",
   "engines": {
     "node": ">=20.11"
   },
@@ -45,8 +47,11 @@
   },
   "keywords": [
     "git-worktree",
+    "worktree",
     "docker-compose",
     "traefik",
+    "dev-environment",
+    "ports",
     "e2e",
     "developer-tools"
   ],

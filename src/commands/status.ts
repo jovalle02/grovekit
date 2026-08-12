@@ -26,7 +26,7 @@ export async function status(opts: StatusOptions): Promise<void> {
   await probeOnce(ctx, runtime);
 
   // Refresh generated config here too: a host process is launched by the
-  // developer directly, and `wt status` is often the last thing run before that.
+  // developer directly, and `grove status` is often the last thing run before that.
   const rendered = await applyRender(ctx, runtime, !opts.json);
   const manifest = buildManifest(ctx, runtime, rendered);
 

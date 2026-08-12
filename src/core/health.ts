@@ -72,9 +72,9 @@ export async function probeOnce(ctx: Context, runtime: RuntimeService[]): Promis
 /**
  * Report whether host processes are listening on the ports we leased them.
  *
- * Purely observational, and deliberately outside the readiness gate: `wt` did
+ * Purely observational, and deliberately outside the readiness gate: `grove` did
  * not start these and cannot start them, so "nothing is listening yet" is not a
- * failure it may report — it would make `wt up` hang and `wt run` refuse over a
+ * failure it may report — it would make `grove up` hang and `grove run` refuse over a
  * process the developer simply has not launched. A host service is `ready` when
  * its port answers and `not-started` otherwise, and `not-started` is already the
  * status that means "nobody asked for this", which is exactly right here.
@@ -270,7 +270,7 @@ async function probe(ctx: Context, svc: RuntimeService): Promise<boolean> {
  * Is anything listening on this port, on either loopback address?
  *
  * Both are required, and probing only IPv4 was a real false negative: a Vite dev
- * server binds `::1` alone, so `wt status` reported "not running" for a server
+ * server binds `::1` alone, so `grove status` reported "not running" for a server
  * that was happily serving — and the workaround was to remove its health check,
  * which is the opposite of what a health check is for. Node resolves `localhost`
  * to `::1` first on Windows, so anything started through a URL rather than an

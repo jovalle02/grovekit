@@ -23,7 +23,7 @@ async function home(): Promise<string> {
   return tmpDir("home");
 }
 
-describe("wt new", () => {
+describe("grove new", () => {
   it("creates the branch, the worktree and its identity in one call", async () => {
     const repo = await makeRepo("new");
     const result = await runCli(["new", "feat/login", "--no-up", "--json"], {
@@ -261,7 +261,7 @@ describe("worktree identity", () => {
   });
 });
 
-describe("wt ls", () => {
+describe("grove ls", () => {
   it("lists every worktree git knows about, with its stack status", async () => {
     const repo = await makeRepo("ls");
     const wtHome = await home();
@@ -276,7 +276,7 @@ describe("wt ls", () => {
   });
 });
 
-describe("wt rm", () => {
+describe("grove rm", () => {
   it("removes the worktree, its state and its registry entry", async () => {
     const repo = await makeRepo("rm");
     const wtHome = await home();
@@ -400,7 +400,7 @@ describe("wt rm", () => {
   });
 });
 
-describe("wt gc", () => {
+describe("grove gc", () => {
   it("reclaims leases whose worktree is gone", async () => {
     const repo = await makeRepo("gc-leases");
     const wtHome = await home();
@@ -465,7 +465,7 @@ describe("wt gc", () => {
   });
 });
 
-describe("wt hydrate", () => {
+describe("grove hydrate", () => {
   it("re-copies files into an existing worktree", async () => {
     const repo = await makeRepo("hydrate-cmd");
     await setHydrate(repo, 'copy = [".env"]');
@@ -496,14 +496,14 @@ describe("wt hydrate", () => {
   });
 });
 
-describe("wt install", () => {
+describe("grove install", () => {
   it("writes the skill, the slash command, the hooks and the gitignore entry", async () => {
     const repo = await makeRepo("install");
     const result = await runCli(["install", "--json"], { cwd: repo, home: await home() });
 
     assert.equal(result.code, 0, result.stderr);
-    assert.equal(await pathExists(path.join(repo, ".claude", "skills", "easy-worktree", "SKILL.md")), true);
-    assert.equal(await pathExists(path.join(repo, ".claude", "commands", "setup-easy-worktree.md")), true);
+    assert.equal(await pathExists(path.join(repo, ".claude", "skills", "git-grove", "SKILL.md")), true);
+    assert.equal(await pathExists(path.join(repo, ".claude", "commands", "setup-git-grove.md")), true);
 
     const settings = await readJsonFile<{
       hooks: Record<string, { hooks: { command: string }[] }[]>;
@@ -515,11 +515,11 @@ describe("wt install", () => {
     // A hook that shells out to a binary not on PATH fails silently — the
     // session starts and nothing anywhere says why. So the command written must
     // be resolved at install time, and verified to be *this* package: `ewt` when
-    // it is installed globally, `wt` where that name is free, the npx fallback
+    // it is installed globally, `grove` where that name is free, the npx fallback
     // when neither resolves. Never a name that belongs to another program.
     assert.match(
       settings.hooks.SessionStart?.[0]?.hooks[0]?.command ?? "",
-      /^(ewt|wt|npx --no-install easy-worktree) hook session-start$/,
+      /^(ewt|grove|npx --no-install git-grove) hook session-start$/,
     );
 
     assert.match(await read(path.join(repo, ".gitignore")), /^\.wt\/$/m);
@@ -548,7 +548,7 @@ describe("wt install", () => {
   it("does not overwrite a customised skill without --force", async () => {
     const repo = await makeRepo("install-custom");
     const wtHome = await home();
-    const skill = path.join(repo, ".claude", "skills", "easy-worktree", "SKILL.md");
+    const skill = path.join(repo, ".claude", "skills", "git-grove", "SKILL.md");
     await write(skill, "my own words");
 
     const first = await runCli(["install", "--json"], { cwd: repo, home: wtHome });
@@ -560,7 +560,7 @@ describe("wt install", () => {
   });
 });
 
-describe("wt hook", () => {
+describe("grove hook", () => {
   it("reports the worktree and what to do next, for injection into a session", async () => {
     const repo = await makeRepo("hook");
     const wtHome = await home();
@@ -570,7 +570,7 @@ describe("wt hook", () => {
     const result = await runCli(["hook", "session-start"], { cwd: root, home: wtHome });
     assert.equal(result.code, 0);
     assert.match(result.stdout, /feat-session/);
-    assert.match(result.stdout, /wt up/);
+    assert.match(result.stdout, /grove up/);
   });
 
   it("stays silent and successful outside a configured repo", async () => {
@@ -589,7 +589,7 @@ describe("wt hook", () => {
   });
 });
 
-describe("wt adapt", () => {
+describe("grove adapt", () => {
   it("reads the repo's compose file as data and classifies every service", async () => {
     const repo = await makeRepo("adapt");
     const result = await runCli(["adapt", "evidence", "--json"], { cwd: repo, home: await home() });
@@ -679,10 +679,10 @@ describe("cli", () => {
   });
 });
 
-describe("wt new default base", () => {
+describe("grove new default base", () => {
   it("branches from where you are standing, like git switch -c", async () => {
     // Found on a real repo: the config enabling this tool lived on a feature
-    // branch, `wt new` branched from main instead, and the new worktree had no
+    // branch, `grove new` branched from main instead, and the new worktree had no
     // worktree.toml at all.
     const repo = await makeRepo("new-base");
     await git(repo, ["checkout", "-q", "-b", "enablement"]);
@@ -701,7 +701,7 @@ describe("wt new default base", () => {
   });
 });
 
-describe("wt adapt on a repo with no containers", () => {
+describe("grove adapt on a repo with no containers", () => {
   it("reports the shape instead of failing, and says what to do", async () => {
     // The setup command starts here, and an agent following it needs to be told
     // which of the two paths it is on. Throwing "no compose file" tells it

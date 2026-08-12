@@ -25,7 +25,7 @@ function lines(text: string): string[] {
  *
  * The proxy is excluded: it is shared machine-wide and belongs to no worktree, so
  * every caller here would otherwise have to remember to special-case it — and
- * exactly one forgotten check means `wt gc` tears down the ingress for every
+ * exactly one forgotten check means `grove gc` tears down the ingress for every
  * running stack on the machine.
  */
 export async function managedContainers(): Promise<ManagedContainer[]> {

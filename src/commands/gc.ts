@@ -30,7 +30,7 @@ interface GcAction {
  * Reclaim what nothing owns any more.
  *
  * Orphans are how tools like this rot: a worktree deleted with `rm -rf` instead
- * of `wt rm` leaves containers holding memory, volumes holding disk and port
+ * of `grove rm` leaves containers holding memory, volumes holding disk and port
  * leases holding numbers, none of which anything will ever ask about again.
  *
  * The safety rule is what makes this usable, and it is stricter than it looks:
@@ -38,7 +38,7 @@ interface GcAction {
  * recognise.** A slug is dead when we hold a record of it — a registry entry or
  * a port lease — whose worktree is gone. A slug we have never heard of is left
  * strictly alone and only reported, because the alternative is that a deleted
- * registry file turns `wt gc` into "destroy every stack on this machine".
+ * registry file turns `grove gc` into "destroy every stack on this machine".
  */
 export async function gc(opts: GcOptions): Promise<void> {
   const actions: GcAction[] = [];
@@ -64,11 +64,11 @@ export async function gc(opts: GcOptions): Promise<void> {
   if (repo) {
     const registry = await readRegistry();
     const known = new Set(registry.worktrees.map((w) => path.resolve(w.root)));
-    for (const wt of await surveyWorktrees()) {
-      if (!wt.slug || known.has(path.resolve(wt.path))) continue;
-      act("register", wt.slug, wt.path);
+    for (const grove of await surveyWorktrees()) {
+      if (!grove.slug || known.has(path.resolve(grove.path))) continue;
+      act("register", grove.slug, grove.path);
       if (!opts.dryRun) {
-        await register({ slug: wt.slug, root: wt.path, branch: wt.branch, repo });
+        await register({ slug: grove.slug, root: grove.path, branch: grove.branch, repo });
       }
     }
   }
@@ -118,7 +118,7 @@ export async function gc(opts: GcOptions): Promise<void> {
     }
   }
 
-  // The loose end: `wt down` on the last worktree leaves the shared proxy up.
+  // The loose end: `grove down` on the last worktree leaves the shared proxy up.
   // Nothing else reaps it. Opt-in, because the proxy is machine-wide and one
   // repo's cleanup should not silently cut ingress for another's.
   if (haveDocker && opts.proxy) {

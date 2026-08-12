@@ -44,7 +44,7 @@ function toManifestService(svc: RuntimeService): ManifestService {
     // A host process we started has a captured log; one we merely observe has
     // nothing to show, because its output went wherever the developer ran it.
     logs:
-      svc.config.runtime === "host" && !svc.config.start ? "" : `wt logs ${svc.config.name}`,
+      svc.config.runtime === "host" && !svc.config.start ? "" : `grove logs ${svc.config.name}`,
   };
   if (svc.lastLogs?.length) entry.lastLogs = svc.lastLogs;
   return entry;
@@ -70,7 +70,7 @@ export function buildManifest(
 
   const commands: Record<string, string> = {};
   for (const [name, cmd] of Object.entries(ctx.config.commands)) {
-    commands[name] = `wt run ${cmd}`;
+    commands[name] = `grove run ${cmd}`;
   }
 
   return {

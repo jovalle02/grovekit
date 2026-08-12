@@ -18,12 +18,12 @@ import { ConfigError } from "./core/config.js";
 import { ContextError } from "./core/context.js";
 import { c, fail } from "./core/output.js";
 
-const VERSION = "0.3.0";
+const VERSION = "0.4.0";
 
-const HELP = `${c.bold("wt")} — every git worktree gets its own stack
+const HELP = `${c.bold("grove")} — every git worktree gets its own stack
 
 ${c.dim("USAGE")}
-  wt <command> [options]
+  grove <command> [options]
 
 ${c.dim("LIFECYCLE")}
   new <branch>        Create a worktree, hydrate it, start it
@@ -67,12 +67,12 @@ ${c.dim("OPTIONS")}
   --version, -v       Show version
 
 ${c.dim("EXAMPLES")}
-  wt new feat/login              ${c.dim("# branch + worktree + hydrate + up, one call")}
-  wt up --group backend          ${c.dim("# a named set from worktree.toml")}
-  wt run pnpm test:e2e           ${c.dim("# BASE_URL/API_URL injected, exit code passed through")}
-  wt status --json               ${c.dim("# what an agent should read")}
-  wt rm feat/login --delete-branch
-  wt gc --dry-run                ${c.dim("# see what has been orphaned")}
+  grove new feat/login              ${c.dim("# branch + worktree + hydrate + up, one call")}
+  grove up --group backend          ${c.dim("# a named set from worktree.toml")}
+  grove run pnpm test:e2e           ${c.dim("# BASE_URL/API_URL injected, exit code passed through")}
+  grove status --json               ${c.dim("# what an agent should read")}
+  grove rm feat/login --delete-branch
+  grove gc --dry-run                ${c.dim("# see what has been orphaned")}
 `;
 
 async function main(): Promise<void> {
@@ -89,7 +89,7 @@ async function main(): Promise<void> {
   }
 
   // For `run`, only leading flags are ours; from the first bare token onward the
-  // args belong to the child verbatim, so `wt run npm test -- --json` keeps its
+  // args belong to the child verbatim, so `grove run npm test -- --json` keeps its
   // own `--json`. An explicit `--` forces the split early.
   let ownArgs = argv.slice(1);
   let childArgs: string[] = [];
@@ -101,7 +101,7 @@ async function main(): Promise<void> {
 
     // Split at whichever comes first. If a bare token leads, everything from it
     // onward is the child command — including any later `--`, which then belongs
-    // to the child (`wt run node -e x -- --json`).
+    // to the child (`grove run node -e x -- --json`).
     const candidates = [bare, sep].filter((i) => i !== -1);
     const cut = candidates.length === 0 ? -1 : Math.min(...candidates);
 
@@ -247,7 +247,7 @@ async function main(): Promise<void> {
 
     default:
       fail(
-        { ok: false, error: `unknown command "${command}"`, hint: "run `wt --help`" },
+        { ok: false, error: `unknown command "${command}"`, hint: "run `grove --help`" },
         json,
       );
   }

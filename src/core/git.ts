@@ -15,8 +15,8 @@ export interface GitWorktree {
  * Parse `git worktree list --porcelain`.
  *
  * Enumerating from git rather than from our registry is deliberate: worktrees
- * created by hand with `git worktree add` must show up too, or `wt ls` lies and
- * `wt gc` deletes things it should not.
+ * created by hand with `git worktree add` must show up too, or `grove ls` lies and
+ * `grove gc` deletes things it should not.
  */
 export function parseWorktreeList(stdout: string): GitWorktree[] {
   const out: GitWorktree[] = [];
@@ -95,7 +95,7 @@ export async function refExists(cwd: string, ref: string): Promise<boolean> {
  *
  * This used to prefer `main`, on the theory that new work starts from the
  * trunk. Using it on a real repo showed why that is wrong: the config enabling
- * this tool was on a feature branch, `wt new` branched from `main` instead, and
+ * this tool was on a feature branch, `grove new` branched from `main` instead, and
  * the new worktree had no worktree.toml at all. Silently ignoring the branch
  * someone is standing on is surprising in a way "branch from here" never is,
  * and `--from main` says the other thing in five characters.
@@ -135,7 +135,7 @@ export async function deleteBranch(cwd: string, branch: string, force: boolean):
   return code === 0;
 }
 
-/** Uncommitted changes, including untracked files — `wt rm` must not eat work. */
+/** Uncommitted changes, including untracked files — `grove rm` must not eat work. */
 export async function isDirty(root: string): Promise<boolean> {
   const { code, stdout } = await exec("git", ["status", "--porcelain"], { cwd: root });
   return code === 0 && stdout.trim().length > 0;

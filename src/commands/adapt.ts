@@ -53,7 +53,7 @@ export async function adapt(opts: AdaptOptions): Promise<void> {
         {
           ok: false,
           error: opts.step ? `unknown adapt step "${opts.step}"` : "no adapt step given",
-          hint: `usage: wt adapt <${STEPS.join("|")}>`,
+          hint: `usage: grove adapt <${STEPS.join("|")}>`,
         },
         opts.json,
       );
@@ -102,7 +102,7 @@ async function evidenceStep(root: string, opts: AdaptOptions): Promise<void> {
   for (const warning of evidence.warnings) console.log(c.yellow(`  ! ${warning}`));
   console.log();
   console.log(c.dim(`written to ${path.relative(root, evidenceFile(root))}`));
-  console.log(c.dim("next: `wt adapt decide --heuristic`, or write .wt/decisions.json yourself"));
+  console.log(c.dim("next: `grove adapt decide --heuristic`, or write .wt/decisions.json yourself"));
 }
 
 async function decideStep(root: string, opts: AdaptOptions): Promise<void> {
@@ -111,7 +111,7 @@ async function decideStep(root: string, opts: AdaptOptions): Promise<void> {
 
   if (!source) {
     fail(
-      { ok: false, error: "no evidence available", hint: "run `wt adapt evidence` first" },
+      { ok: false, error: "no evidence available", hint: "run `grove adapt evidence` first" },
       opts.json,
     );
   }
@@ -138,7 +138,7 @@ async function decideStep(root: string, opts: AdaptOptions): Promise<void> {
   }
 
   printDecisions(decisions);
-  console.log(c.dim(`written to ${path.relative(root, file)} — edit it, then \`wt adapt render\``));
+  console.log(c.dim(`written to ${path.relative(root, file)} — edit it, then \`grove adapt render\``));
 }
 
 async function renderStep(root: string, opts: AdaptOptions): Promise<void> {
@@ -150,7 +150,7 @@ async function renderStep(root: string, opts: AdaptOptions): Promise<void> {
       {
         ok: false,
         error: `no decisions at ${path.relative(root, file)}`,
-        hint: "run `wt adapt decide --heuristic`, or point at a file with `wt adapt render <file>`",
+        hint: "run `grove adapt decide --heuristic`, or point at a file with `grove adapt render <file>`",
       },
       opts.json,
     );
@@ -188,7 +188,7 @@ async function renderStep(root: string, opts: AdaptOptions): Promise<void> {
   for (const entry of written) console.log(`${c.green("✓")} ${entry.action.padEnd(12)} ${entry.file}`);
   for (const note of decisions.review) console.log(c.yellow(`  ! ${note}`));
   console.log();
-  console.log(c.dim("next: `wt adapt validate`"));
+  console.log(c.dim("next: `grove adapt validate`"));
 }
 
 /**
@@ -206,7 +206,7 @@ async function validateStep(root: string, opts: AdaptOptions): Promise<void> {
 
   for (const [name, file] of [["overlay", overlay], ["config", config]] as const) {
     if (!(await exists(file))) {
-      problems.push({ check: `${name} exists`, detail: `${path.basename(file)} is missing`, hint: "run `wt adapt render`" });
+      problems.push({ check: `${name} exists`, detail: `${path.basename(file)} is missing`, hint: "run `grove adapt render`" });
     }
   }
 
@@ -276,7 +276,7 @@ async function validateStep(root: string, opts: AdaptOptions): Promise<void> {
     printJson({ ok, problems });
   } else if (ok) {
     console.log(`${c.green("✓")} overlay and config validate`);
-    console.log(c.dim("next: `wt doctor`, then `wt up --build`"));
+    console.log(c.dim("next: `grove doctor`, then `grove up --build`"));
   } else {
     for (const problem of problems) {
       console.log(`${c.red("✗")} ${problem.check.padEnd(20)} ${c.dim(problem.detail)}`);

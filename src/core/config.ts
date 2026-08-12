@@ -34,7 +34,7 @@ export async function loadConfig(root: string): Promise<Config> {
   const file = await findConfigFile(root);
   if (!file) {
     throw new ConfigError(
-      `No worktree.toml found in ${root}. Run \`wt adapt\` (or write one by hand) first.`,
+      `No worktree.toml found in ${root}. Run \`grove adapt\` (or write one by hand) first.`,
     );
   }
 
@@ -319,7 +319,7 @@ function obj(v: unknown, where: string): Record<string, unknown> {
  *
  * Ignoring them silently is the expensive kind of wrong. A `[hydrate]` written
  * as `"path" = "copy"` rather than `copy = ["path"]` parses fine, yields empty
- * lists, passes `wt doctor`, and gets reported as working — while nothing is
+ * lists, passes `grove doctor`, and gets reported as working — while nothing is
  * copied and nothing is linked, with no message anywhere. A key we do not know
  * is always a mistake, and this is the only place that can see it.
  */

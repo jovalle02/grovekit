@@ -1,18 +1,22 @@
 import fs from "node:fs/promises";
 import { execSafe } from "./exec.js";
 
-export const PACKAGE_NAME = "easy-worktree";
+export const PACKAGE_NAME = "git-grove";
 
 /**
- * Names this package installs. `ewt` exists because of a name collision that
- * only shows up on the platform this tool is most used on:
+ * Names this package installs, in the order we prefer to invoke them.
  *
- * **`wt` is Windows Terminal.** Windows ships `wt.exe` as an app execution alias
- * in `%LOCALAPPDATA%\Microsoft\WindowsApps`, which is on PATH for every user. So
- * whether `wt` means this tool depends on whether the npm global directory
- * happens to come first — and if it does not, `wt up` opens a terminal window.
+ * `grove` is the command. `git-grove` exists because git dispatches any unknown
+ * subcommand to `git-<name>` on PATH, so installing it makes `git grove …` work
+ * — and that form can never be shadowed by another program, because git
+ * resolves it itself rather than the shell.
+ *
+ * `wt` and `ewt` are kept only so that hooks and shells written against the old
+ * name keep working. **`wt` is Windows Terminal**: Windows ships `wt.exe` as an
+ * app execution alias on every user's PATH, so whether it means this tool comes
+ * down to PATH order — which is why it is last, and why `grove` exists at all.
  */
-export const BIN_NAMES = ["ewt", "wt"] as const;
+export const BIN_NAMES = ["grove", "git-grove", "ewt", "wt"] as const;
 
 export interface ResolvedBin {
   /** What to invoke: a bin name if one resolves to us, else an npx fallback. */
@@ -41,7 +45,7 @@ async function candidates(name: string): Promise<string[]> {
  * Whether a file on PATH is actually this package.
  *
  * Name is not evidence. An npm shim either resolves to a path inside the package
- * or names the package in its text — a compiled `wt.exe` belonging to Windows
+ * or names the package in its text — a compiled `grove.exe` belonging to Windows
  * Terminal does neither, which is exactly the case that has to be caught.
  */
 export async function isOurBinary(file: string): Promise<boolean> {

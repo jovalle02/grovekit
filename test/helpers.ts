@@ -24,10 +24,10 @@ const created: string[] = [];
  * Under the OS temp dir rather than the repo so a crashed run never leaves a
  * half-built git worktree inside the project — which git then refuses to prune.
  */
-export async function tmpDir(label = "wt"): Promise<string> {
+export async function tmpDir(label = "grove"): Promise<string> {
   const dir = path.join(
     await fs.realpath(os.tmpdir()),
-    "easy-worktree-tests",
+    "git-grove-tests",
     `${label}-${process.pid}-${counter++}`,
   );
   await fs.mkdir(dir, { recursive: true });
@@ -180,10 +180,10 @@ export async function setHydrate(root: string, body: string): Promise<void> {
 /**
  * Complete teardown for a Docker-backed test.
  *
- * `wt down --remove` deliberately keeps volumes — that is the whole point of the
+ * `grove down --remove` deliberately keeps volumes — that is the whole point of the
  * down/rm split — so a test that only calls it leaks a Postgres volume per run.
  * Tests own the resources they create, so they clean up by label, which is the
- * same mechanism `wt rm` and `wt gc` use.
+ * same mechanism `grove rm` and `grove gc` use.
  */
 export async function teardown(cwd: string, slug: string, home: string): Promise<void> {
   await runCli(["down", "--remove", "--json"], { cwd, home, timeoutMs: 120_000 }).catch(() => {});

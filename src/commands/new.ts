@@ -38,14 +38,14 @@ export interface NewOptions {
  * Create a worktree and leave it running.
  *
  * This exists because the honest version of the workflow is four commands with
- * error handling between them — branch, `git worktree add`, hydrate, `wt up` —
+ * error handling between them — branch, `git worktree add`, hydrate, `grove up` —
  * and both humans and agents chain those badly. One call, one JSON result, and
  * a half-built worktree is rolled back rather than left behind.
  */
 export async function newWorktree(opts: NewOptions): Promise<void> {
   const branch = opts.branch.trim();
   if (!branch) {
-    fail({ ok: false, error: "no branch name", hint: "usage: wt new <branch> [--from <ref>]" }, opts.json);
+    fail({ ok: false, error: "no branch name", hint: "usage: grove new <branch> [--from <ref>]" }, opts.json);
   }
 
   const here = await gitRoot();
@@ -138,7 +138,7 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
     // The overwhelmingly common cause, and one the generic message sends people
     // hunting in the wrong place: worktree.toml exists where they are standing
     // but is not committed on the base they branched from, so the new worktree
-    // genuinely does not have it. Say that, rather than "run `wt adapt`".
+    // genuinely does not have it. Say that, rather than "run `grove adapt`".
     const uncommittedConfig =
       /No worktree\.toml found/.test((err as Error).message) && (await exists(path.join(here, "worktree.toml")));
 
@@ -184,10 +184,10 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
 /**
  * Undo everything this command established, in reverse.
  *
- * `wt gc` would eventually reclaim the leases and the registry entry — a slug
+ * `grove gc` would eventually reclaim the leases and the registry entry — a slug
  * whose worktree is gone is exactly what it looks for — but leaving them for it
- * means the next `wt new` on the same branch gets a different port for no
- * reason, and `wt ls` shows a worktree that is not there.
+ * means the next `grove new` on the same branch gets a different port for no
+ * reason, and `grove ls` shows a worktree that is not there.
  */
 async function rollback(
   repo: string,
@@ -212,13 +212,13 @@ async function rollback(
   if (branch) await deleteBranch(repo, branch, true).catch(() => {});
 }
 
-/** Shared by `wt hydrate`, which re-runs the same logic on an existing worktree. */
+/** Shared by `grove hydrate`, which re-runs the same logic on an existing worktree. */
 export async function hydrateSource(dest: string): Promise<string> {
   const main = await mainWorktree(dest);
   if (path.resolve(main) === path.resolve(dest)) {
     throw new ContextError(
       "This is the main worktree, so there is nothing to hydrate from.",
-      "Run `wt hydrate` from a secondary worktree.",
+      "Run `grove hydrate` from a secondary worktree.",
     );
   }
   return main;

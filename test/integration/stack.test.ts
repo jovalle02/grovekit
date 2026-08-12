@@ -174,7 +174,7 @@ describe("stack", { skip: dockerTests ? false : "set WT_TEST_DOCKER=1 to run Doc
     const payload = result.json<{ ok: boolean; error: string; hint: string }>();
     assert.equal(payload.ok, false);
     assert.match(payload.error, /refusing to run/);
-    assert.match(payload.hint, /wt up/);
+    assert.match(payload.hint, /grove up/);
   });
 
   it("passes the child's exit code through", { timeout: TIMEOUT }, async () => {

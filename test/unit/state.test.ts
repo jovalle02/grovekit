@@ -62,7 +62,7 @@ describe("port leases", () => {
 
   it("hands out a port and then returns the same one forever", async () => {
     // Re-probing an existing lease would report it busy — our own container is
-    // holding it — and renumber the database on every `wt up`.
+    // holding it — and renumber the database on every `grove up`.
     const first = await leasePort("demo/db");
     const second = await leasePort("demo/db");
     assert.equal(first, second);

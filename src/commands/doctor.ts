@@ -56,19 +56,19 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
     hint: "the `!reset` tag used by the overlay needs Compose 2.24+",
   });
 
-  // On Windows `wt` is Windows Terminal, shipped as an app execution alias on
-  // every user's PATH. Whether `wt` means this tool comes down to PATH order, and
-  // when it loses, `wt up` opens a terminal window instead of starting a stack.
+  // On Windows `grove` is Windows Terminal, shipped as an app execution alias on
+  // every user's PATH. Whether `grove` means this tool comes down to PATH order, and
+  // when it loses, `grove up` opens a terminal window instead of starting a stack.
   const bin = await resolveBin();
   checks.push({
-    name: "wt on PATH",
+    name: "grove on PATH",
     ok: bin.verified,
     detail: bin.verified ? `${bin.command} -> ${bin.path}` : "not installed",
     hint: bin.verified
       ? undefined
       : bin.shadowedBy
-        ? `${bin.shadowedBy} has the name but is a different program. Use \`ewt\`, or run \`npm i -g easy-worktree\`.`
-        : "run `npm i -g easy-worktree`, or invoke it as `npx easy-worktree`",
+        ? `${bin.shadowedBy} has the name but is a different program. Use \`ewt\`, or run \`npm i -g git-grove\`.`
+        : "run `npm i -g git-grove`, or invoke it as `npx git-grove`",
   });
 
   let ctxOk = false;
@@ -221,7 +221,7 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
           detail: broken ? `${ctx.config.proxy.image} cannot read the docker socket` : "reachable",
           hint: broken
             ? `Traefik < 3.6 negotiates a Docker API version below 1.44 and cannot talk to ` +
-              `Docker Engine 29+. Set [proxy] image = "traefik:v3.6" and run \`wt up\` again.`
+              `Docker Engine 29+. Set [proxy] image = "traefik:v3.6" and run \`grove up\` again.`
             : undefined,
         });
       }

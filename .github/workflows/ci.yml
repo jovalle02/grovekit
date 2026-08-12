@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     # Windows is not an afterthought here: the junction link type, the `.cmd`
-    # shim quoting in `wt run` and the port-reservation behaviour that defeats a
+    # shim quoting in `grove run` and the port-reservation behaviour that defeats a
     # socket probe are all Windows-specific, and all three cost real debugging.
     strategy:
       fail-fast: false
@@ -29,7 +29,7 @@ jobs:
       - run: npm ci
 
       - name: Configure git
-        # `wt new` and `wt rm` drive real worktrees, which git refuses to do
+        # `grove new` and `grove rm` drive real worktrees, which git refuses to do
         # without an identity.
         run: |
           git config --global user.email "ci@example.com"

@@ -35,7 +35,7 @@ export type HealthCheck =
  * `compose` is a container this tool starts and stops. `host` is a process it
  * does not run at all — an orchestrator that launches its own children, a
  * compiled server, a dev server you start in your own terminal. For those the
- * only thing `wt` can usefully own is the port, which it leases and hands back
+ * only thing `grove` can usefully own is the port, which it leases and hands back
  * through `[render]` and the injected environment.
  *
  * This is what makes the tool useful to a stack that is not containerised: the
@@ -59,7 +59,7 @@ export interface ServiceConfig {
   /**
    * `host` services only: how to launch it.
    *
-   * Present, and `wt up` starts the process with the worktree's environment
+   * Present, and `grove up` starts the process with the worktree's environment
    * injected, tracks its pid and waits for it to answer — the same contract a
    * container gets. Absent, and the service is a port reservation this tool
    * merely observes, for something you start yourself.

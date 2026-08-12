@@ -15,7 +15,7 @@ export interface DownOptions {
 
 /**
  * Non-destructive by design: volumes, databases, port leases and the worktree
- * all survive. Only `wt rm` deletes data, and only when asked.
+ * all survive. Only `grove rm` deletes data, and only when asked.
  */
 export async function down(opts: DownOptions): Promise<void> {
   const ctx = await loadContext();
@@ -61,6 +61,6 @@ export async function down(opts: DownOptions): Promise<void> {
     printJson(manifest);
   } else {
     const what = selection.length > 0 ? selection.join(", ") : "stack";
-    console.log(`${c.green("✓")} ${what} stopped ${c.dim("(volumes and data kept — `wt up` to resume)")}`);
+    console.log(`${c.green("✓")} ${what} stopped ${c.dim("(volumes and data kept — `grove up` to resume)")}`);
   }
 }

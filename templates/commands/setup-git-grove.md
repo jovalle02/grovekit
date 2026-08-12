@@ -2,7 +2,7 @@
 description: Migrate this repo so every git worktree runs its own isolated stack
 ---
 
-Set this repository up for `wt` (easy-worktree). **You are doing this, not the
+Set this repository up for `grove` (git-grove). **You are doing this, not the
 user** — they run this command and read your summary at the end. The only thing
 they should have to do by hand is answer a question you cannot answer from the
 code.
@@ -13,12 +13,12 @@ step assumes the earlier one held.
 ## 0. Which shape is this repo?
 
 ```
-wt adapt evidence --json
+grove adapt evidence --json
 ```
 
 Read `containerised` in the output.
 
-- **`true`** — there is a compose file. Continue at step 1; `wt adapt` does most
+- **`true`** — there is a compose file. Continue at step 1; `grove adapt` does most
   of the work and your judgment is needed only for the decisions file.
 - **`false`** — nothing here is containerised. **Skip to "Repos with no
   containers"** at the bottom. `adapt decide` and `adapt render` have nothing to
@@ -45,7 +45,7 @@ a **file**, not a command — so it is reviewable and re-runnable.
 Start from the heuristic and correct it:
 
 ```
-wt adapt decide --heuristic --json
+grove adapt decide --heuristic --json
 ```
 
 For every service decide:
@@ -79,7 +79,7 @@ Two things worth getting right:
 ## 3. Render
 
 ```
-wt adapt render --json
+grove adapt render --json
 ```
 
 Deterministic code, no model: it turns the decisions into
@@ -98,15 +98,15 @@ Read both files and check the two mechanical traps:
 ## 4. Validate
 
 ```
-wt adapt validate --json
+grove adapt validate --json
 ```
 
 Merges the files, boots the stack and requests every URL it generated. Then:
 
 ```
-wt doctor --json
-wt up --build
-wt status --json
+grove doctor --json
+grove up --build
+grove status --json
 ```
 
 If a service never becomes healthy, the manifest names it and carries its logs.
@@ -119,14 +119,14 @@ Tell the user, briefly:
 - which services got public URLs, and what they are
 - which kept a host port, and why
 - anything with `confidence: "low"` that they should check
-- the one-line commands they now have: `wt new <branch>`, `wt up`, `wt run <cmd>`
+- the one-line commands they now have: `grove new <branch>`, `grove up`, `grove run <cmd>`
 
 ---
 
 # Repos with no containers
 
 Nothing is containerised, so there is no proxy, no hostnames, and no compose file
-to read. Every service is `runtime = "host"`: `wt` leases a distinct port per
+to read. Every service is `runtime = "host"`: `grove` leases a distinct port per
 worktree and hands it back. **You write `worktree.toml`** — `adapt` cannot,
 because the ports live in code rather than in a machine-readable file.
 
@@ -141,7 +141,7 @@ This is the whole job, and it is a reading task. Search for port literals in:
 - any orchestrator that starts other processes, which usually pins several
 
 For each one, record: what it is, which port, and **how it is configured** —
-because that determines how `wt` hands the new port back. There are two ways, and
+because that determines how `grove` hands the new port back. There are two ways, and
 you will usually need both:
 
 - **read from a file at startup** → a `[render]` template writes it
@@ -187,7 +187,7 @@ Rules that matter:
 - The env var name for a service is `WT_PORT_` + its name uppercased, with
   non-alphanumerics as `_`. `api-grpc` → `WT_PORT_API_GRPC`.
 - Every rendered file must be gitignored. Committed, it hands every worktree the
-  same ports — `wt doctor` checks this.
+  same ports — `grove doctor` checks this.
 - `[hydrate]` for what git will not bring: `link` a `node_modules`-shaped
   directory, `copy` a `.env`, `run` the install command.
 
@@ -218,23 +218,23 @@ costs nothing, and the next person needs to know it was tried.
 ## C. Verify, and expect the environment to fight you
 
 ```
-wt doctor            # config valid, generated files ignored
-wt up                # renders, starts, waits
-wt status            # every service and the port it is on
+grove doctor            # config valid, generated files ignored
+grove up                # renders, starts, waits
+grove status            # every service and the port it is on
 ```
 
 Then check the process **actually took the leased port** — do not assume it did:
 
 ```
-wt logs <service>    # what did it say it was listening on?
+grove logs <service>    # what did it say it was listening on?
 ```
 
-If `wt status --env` shows a leased port but the process came up on its old one,
+If `grove status --env` shows a leased port but the process came up on its old one,
 the launcher is overriding the environment. Many run commands apply their own
 profile's variables *over* the ambient ones. Look for a flag that skips the
 profile, and then supply whatever that profile was setting via `[env]`.
 
-**After changing worktree.toml, `wt down` before `wt up`.** `wt up` restarts a
+**After changing worktree.toml, `grove down` before `grove up`.** `grove up` restarts a
 host process whose *rendered* config changed, but a change that only affects
 `[env]` is invisible to it — and a process started earlier is still holding the
 old values.
@@ -243,15 +243,15 @@ Then prove the point:
 
 ```
 git add worktree.toml .gitignore && git commit    # required: see below
-wt new feat/scratch
+grove new feat/scratch
 ```
 
 **Commit worktree.toml first.** A new worktree gets the branch's files, so an
-uncommitted config means the worktree arrives without one and `wt new` rolls
+uncommitted config means the worktree arrives without one and `grove new` rolls
 back. If you branched from somewhere that lacks it, `--from <your-branch>`.
 
 Confirm both worktrees are up on disjoint ports, and that they *serve* rather
-than merely listen — request a real endpoint on each. Then `wt rm feat-scratch`.
+than merely listen — request a real endpoint on each. Then `grove rm feat-scratch`.
 
 ## D. Report
 

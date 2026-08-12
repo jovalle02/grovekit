@@ -48,7 +48,7 @@ describe("renderFiles", () => {
 
   it("leaves an unchanged file alone, mtime included", async () => {
     // These paths are exactly what a hot-reloading dev server watches, and
-    // `wt status` is run often. Rewriting identical bytes would restart it.
+    // `grove status` is run often. Rewriting identical bytes would restart it.
     const root = await tmpDir("render-idempotent");
     const templates = { "ports.json": "${WT_PORT_DB}" };
     await renderFiles(root, templates, { WT_PORT_DB: "1" });
@@ -97,22 +97,22 @@ describe("renderFiles", () => {
 describe("isOurBinary", () => {
   it("accepts a shim whose text names the package", async () => {
     const dir = await tmpDir("bin-shim");
-    const shim = path.join(dir, "wt.cmd");
-    await write(shim, '@node "%~dp0\\node_modules\\easy-worktree\\dist\\cli.js" %*\n');
+    const shim = path.join(dir, "grove.cmd");
+    await write(shim, '@node "%~dp0\\node_modules\\git-grove\\dist\\cli.js" %*\n');
     assert.equal(await isOurBinary(shim), true);
   });
 
   it("accepts a path inside the package", async () => {
     const dir = await tmpDir("bin-path");
-    const file = path.join(dir, "easy-worktree", "dist", "cli.js");
+    const file = path.join(dir, "git-grove", "dist", "cli.js");
     await write(file, "#!/usr/bin/env node\n");
     assert.equal(await isOurBinary(file), true);
   });
 
   it("rejects a different program that happens to share the name", async () => {
-    // The real case: Windows ships wt.exe (Windows Terminal) on every PATH.
+    // The real case: Windows ships grove.exe (Windows Terminal) on every PATH.
     const dir = await tmpDir("bin-impostor");
-    const exe = path.join(dir, "wt.exe");
+    const exe = path.join(dir, "grove.exe");
     await fs.writeFile(exe, Buffer.from([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00]));
     assert.equal(await isOurBinary(exe), false);
   });

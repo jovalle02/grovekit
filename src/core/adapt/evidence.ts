@@ -135,7 +135,7 @@ export async function gatherEvidence(
       services: [],
       warnings: [
         `No compose file in ${root} (looked for ${COMPOSE_CANDIDATES.join(", ")}).`,
-        `Nothing here is containerised, so every service is runtime = "host": wt`,
+        `Nothing here is containerised, so every service is runtime = "host": grove`,
         `leases a port for each and hands it back through [render] or [env].`,
         `\`adapt decide\` and \`adapt render\` have nothing to read — write`,
         `worktree.toml directly. What goes in it is one entry per hardcoded port,`,

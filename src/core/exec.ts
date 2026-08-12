@@ -71,7 +71,7 @@ export function exec(
 /**
  * Same as `exec`, but a missing executable is reported as exit 127 rather than a
  * rejected promise. For probing tools that may legitimately be absent — a machine
- * with no Docker still has to be able to run `wt gc` over its leases.
+ * with no Docker still has to be able to run `grove gc` over its leases.
  */
 export async function execSafe(
   file: string,

@@ -14,8 +14,8 @@ describe("slugify", () => {
   it("never starts or ends with a dash — a DNS label may not", () => {
     assert.equal(slugify("-leading"), "leading");
     assert.equal(slugify("trailing---"), "trailing");
-    assert.equal(slugify("///"), "wt");
-    assert.equal(slugify(""), "wt");
+    assert.equal(slugify("///"), "grove");
+    assert.equal(slugify(""), "grove");
     for (const branch of ["--x--", "1.2.3", "_", "feat//x"]) {
       assert.match(slugify(branch), /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, branch);
     }
@@ -66,7 +66,7 @@ describe("envKey", () => {
 });
 
 describe("quoteForShell", () => {
-  // `wt run` must go through a shell (npm/pnpm/yarn are .cmd shims on Windows
+  // `grove run` must go through a shell (npm/pnpm/yarn are .cmd shims on Windows
   // that spawn cannot exec), which means handing it one string. Re-quoting each
   // argument is what stops `node -e 'a b'` arriving as three words.
   it("passes simple tokens through untouched", () => {

@@ -5,7 +5,7 @@ import type { Manifest } from "../types.js";
 /**
  * The environment this worktree exposes.
  *
- * One definition, three consumers: `wt run` injects it into the child, `wt status
+ * One definition, three consumers: `grove run` injects it into the child, `grove status
  * --env` prints it, and `[render]` interpolates templates against it. It lives in
  * core rather than next to `run` so that `up` can render files without importing
  * a command module that imports it back.

@@ -17,7 +17,7 @@ export interface RunOptions {
 
 export async function run(opts: RunOptions): Promise<void> {
   if (opts.argv.length === 0) {
-    fail({ ok: false, error: "nothing to run", hint: "usage: wt run <command…>" }, opts.json);
+    fail({ ok: false, error: "nothing to run", hint: "usage: grove run <command…>" }, opts.json);
   }
 
   const ctx = await loadContext();
@@ -42,8 +42,8 @@ export async function run(opts: RunOptions): Promise<void> {
         error: `stack is ${manifest.status}, refusing to run`,
         hint:
           broken.length > 0
-            ? `unhealthy: ${broken.join(", ")} — try \`wt logs ${broken[0]}\``
-            : `run \`wt up\` first${stopped.length ? ` (not running: ${stopped.join(", ")})` : ""}`,
+            ? `unhealthy: ${broken.join(", ")} — try \`grove logs ${broken[0]}\``
+            : `run \`grove up\` first${stopped.length ? ` (not running: ${stopped.join(", ")})` : ""}`,
         ...(broken[0] ? { service: broken[0] } : {}),
       },
       opts.json,
@@ -62,7 +62,7 @@ export async function run(opts: RunOptions): Promise<void> {
   }
 
   // `shell: true` so Windows `.cmd` shims (npm, pnpm, yarn) resolve, and so
-  // `wt run "a && b"` behaves the way people expect. That means we hand the shell
+  // `grove run "a && b"` behaves the way people expect. That means we hand the shell
   // one string, so each argument has to be re-quoted or `-e 'inline script'`
   // arrives as separate words.
   const command = opts.argv.map(quoteForShell).join(" ");

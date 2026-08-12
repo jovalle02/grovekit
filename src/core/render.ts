@@ -47,7 +47,7 @@ export function interpolate(
  * worktree is the whole integration.
  *
  * A file whose content has not changed is left alone. Rewriting it every
- * `wt status` would touch its mtime, and these paths are exactly the ones a file
+ * `grove status` would touch its mtime, and these paths are exactly the ones a file
  * watcher or a hot-reloading dev server is watching.
  */
 export async function renderFiles(

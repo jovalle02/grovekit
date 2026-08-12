@@ -1,5 +1,5 @@
 # A deliberately "un-migrated" compose file: published host ports, sibling URLs
-# addressed by bare service name. This is the shape `wt adapt` expects to find.
+# addressed by bare service name. This is the shape `grove adapt` expects to find.
 services:
   web:
     build: ./web

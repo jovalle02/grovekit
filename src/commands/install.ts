@@ -21,7 +21,7 @@ interface Written {
   reason?: string;
 }
 
-const AGENTS_MARKER = "<!-- easy-worktree -->";
+const AGENTS_MARKER = "<!-- git-grove -->";
 
 /** `dist/commands/install.js` and `src/commands/install.ts` are both two deep. */
 function templatesDir(): string {
@@ -35,7 +35,7 @@ function templatesDir(): string {
  * What it deliberately does NOT do is write the compose overlay. Migrating a
  * repo needs decisions about which services face a browser and which are
  * internal, and a wrong guess there produces a stack that boots and then serves
- * 404s. That is `wt adapt`.
+ * 404s. That is `grove adapt`.
  */
 export async function install(opts: InstallOptions): Promise<void> {
   const root = await gitRoot();
@@ -45,8 +45,8 @@ export async function install(opts: InstallOptions): Promise<void> {
   // starts, nothing is injected, and nothing anywhere says why. Resolve it now,
   // at write time, when we can actually check.
   //
-  // Checking the *name* is not enough, and this bit a real install: `which("wt")`
-  // returned true because Windows ships `wt.exe` (Windows Terminal) as an app
+  // Checking the *name* is not enough, and this bit a real install: `which("grove")`
+  // returned true because Windows ships `grove.exe` (Windows Terminal) as an app
   // execution alias on every user's PATH. The hook written on the strength of
   // that would have opened a terminal window at the start of every session.
   const resolved = await resolveBin();
@@ -54,16 +54,16 @@ export async function install(opts: InstallOptions): Promise<void> {
 
   written.push(
     await copyTemplate(
-      path.join(templatesDir(), "skills", "easy-worktree", "SKILL.md"),
-      path.join(root, ".claude", "skills", "easy-worktree", "SKILL.md"),
+      path.join(templatesDir(), "skills", "git-grove", "SKILL.md"),
+      path.join(root, ".claude", "skills", "git-grove", "SKILL.md"),
       opts.force,
     ),
   );
 
   written.push(
     await copyTemplate(
-      path.join(templatesDir(), "commands", "setup-easy-worktree.md"),
-      path.join(root, ".claude", "commands", "setup-easy-worktree.md"),
+      path.join(templatesDir(), "commands", "setup-git-grove.md"),
+      path.join(root, ".claude", "commands", "setup-git-grove.md"),
       opts.force,
     ),
   );
@@ -109,10 +109,10 @@ export async function install(opts: InstallOptions): Promise<void> {
   }
   if (!resolved.verified) {
     console.log(
-      c.dim("  nothing on PATH is this package; hooks go through npx. `npm i -g easy-worktree` to fix."),
+      c.dim("  nothing on PATH is this package; hooks go through npx. `npm i -g git-grove` to fix."),
     );
   }
-  console.log(c.dim(`next: \`/setup-easy-worktree\` in Claude Code, or \`${bin} adapt evidence\` by hand`));
+  console.log(c.dim(`next: \`/setup-git-grove\` in Claude Code, or \`${bin} adapt evidence\` by hand`));
 
   // Non-zero when anything was left alone, so a caller learns the install was
   // partial instead of assuming every file is now what this version ships.
@@ -185,7 +185,7 @@ async function appendGitignore(file: string): Promise<Written> {
   if (current !== null && /^\.wt\/?$/m.test(current)) return { file, action: "unchanged" };
 
   const block =
-    "\n# easy-worktree per-worktree runtime state. Committing this makes a new\n" +
+    "\n# git-grove per-worktree runtime state. Committing this makes a new\n" +
     "# worktree inherit another's identity and drive its containers.\n.wt/\n";
   await fs.writeFile(file, (current ?? "") + block, "utf8");
   return { file, action: current === null ? "created" : "updated" };
@@ -202,12 +202,12 @@ async function appendAgents(file: string, force: boolean): Promise<Written> {
 ${AGENTS_MARKER}
 ## Worktree stacks
 
-This repo uses \`wt\` (easy-worktree): every git worktree runs its own full stack
+This repo uses \`grove\` (git-grove): every git worktree runs its own full stack
 with its own URLs and its own database.
 
 - Read \`.wt/manifest.json\` for URLs and per-service status. Every command takes
   \`--json\`; prefer it.
-- \`wt up\` starts and blocks until healthy. \`wt run <cmd>\` injects \`BASE_URL\`,
+- \`grove up\` starts and blocks until healthy. \`grove run <cmd>\` injects \`BASE_URL\`,
   \`API_URL\` and \`DATABASE_URL\` and passes the exit code through.
 - \`status: ready\` means every service in \`scope\` is ready. A service marked
   \`not-started\` was deliberately left out of scope — nothing is wrong with it.

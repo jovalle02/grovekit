@@ -14,7 +14,7 @@ export function slugify(branch: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, MAX)
     .replace(/-+$/, "");
-  if (!s) return "wt";
+  if (!s) return "grove";
   return /^[a-z0-9]/.test(s) ? s : `wt-${s}`;
 }
 

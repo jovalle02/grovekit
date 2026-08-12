@@ -36,7 +36,7 @@ describe('runtime = "host" config', () => {
     assert.equal(config.services[0]?.runtime, "compose");
   });
 
-  it("implies a port lease, because that is the only thing wt can own", async () => {
+  it("implies a port lease, because that is the only thing grove can own", async () => {
     const config = await load(BASE + '\n[[services]]\nname = "api-grpc"\nruntime = "host"\n');
     assert.equal(config.services[0]?.runtime, "host");
     assert.equal(config.services[0]?.hostPort, true);
@@ -85,7 +85,7 @@ describe("[render] config", () => {
   });
 
   it("refuses to write outside the worktree", async () => {
-    // A generated file is written on every `wt up`; escaping the worktree would
+    // A generated file is written on every `grove up`; escaping the worktree would
     // make one worktree quietly overwrite another's config.
     await rejects(
       BASE + '\n[[services]]\nname = "api"\n\n[render]\n"../outside.json" = "{}"\n',
@@ -143,8 +143,8 @@ function listen(): Promise<{ port: number; close: () => void }> {
 
 describe("host services at runtime", () => {
   it("is not-started when nothing is listening, never unhealthy", async () => {
-    // `wt` did not start it and cannot start it, so calling it unhealthy would
-    // make `wt up` fail over a process the developer simply has not launched.
+    // `grove` did not start it and cannot start it, so calling it unhealthy would
+    // make `grove up` fail over a process the developer simply has not launched.
     const ctx = contextWith([{ name: "gateway", runtime: "host" }], { gateway: 1 });
     const runtime = buildRuntime(ctx, []);
     await probeHosts(ctx, runtime);
@@ -249,7 +249,7 @@ runtime = "host"
 
 describe("config typos are caught, not ignored", () => {
   // The expensive kind of wrong: this exact [hydrate] parsed fine, produced
-  // empty lists, passed `wt doctor`, and got reported as working — while
+  // empty lists, passed `grove doctor`, and got reported as working — while
   // nothing was copied and nothing was linked.
   it("rejects table syntax where a list was meant", async () => {
     await rejects(

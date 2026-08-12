@@ -34,7 +34,7 @@ health = { exec = ["pg_isready", "-U", "app"] }
 backend = ["api", "db"]
 frontend = ["web", "api", "db"]
 
-# Interpolated against the vars `wt run` injects (WT_HOST_DB is `localhost:<lease>`).
+# Interpolated against the vars `grove run` injects (WT_HOST_DB is `localhost:<lease>`).
 [env]
 DATABASE_URL = "postgres://app:app@${WT_HOST_DB}/app"
 
@@ -43,7 +43,7 @@ e2e = "node e2e.mjs"
 
 # What a fresh worktree needs and git will not bring — every path here is
 # gitignored by definition. Copy what you may edit per worktree; link what is
-# large and identical. `wt` hashes the lockfiles to choose between `link` and
+# large and identical. `grove` hashes the lockfiles to choose between `link` and
 # `run`: identical means sharing one node_modules is safe, different means the
 # branch changed its dependencies and it installs instead.
 #

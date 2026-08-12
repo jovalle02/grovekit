@@ -46,7 +46,7 @@ export interface RmOptions {
 export async function rm(opts: RmOptions): Promise<void> {
   if (!opts.target) {
     fail(
-      { ok: false, error: "no worktree given", hint: "usage: wt rm <slug|branch|path>" },
+      { ok: false, error: "no worktree given", hint: "usage: grove rm <slug|branch|path>" },
       opts.json,
     );
   }
@@ -59,7 +59,7 @@ export async function rm(opts: RmOptions): Promise<void> {
       {
         ok: false,
         error: `"${opts.target}" is the main worktree and cannot be removed`,
-        hint: "wt rm removes secondary worktrees only",
+        hint: "grove rm removes secondary worktrees only",
       },
       opts.json,
     );

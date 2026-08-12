@@ -104,7 +104,7 @@ describe("host processes", () => {
   });
 
   it("does not start a second copy when one is already running", async () => {
-    // `wt up` is meant to be safe to run whenever you are unsure. A second
+    // `grove up` is meant to be safe to run whenever you are unsure. A second
     // process fighting the first over the port is the worst possible answer.
     const { repo, home } = await hostRepo("host-idempotent");
     try {
@@ -146,7 +146,7 @@ describe("host processes", () => {
     );
   });
 
-  it("shows a host process's output through wt logs", async () => {
+  it("shows a host process's output through grove logs", async () => {
     const { repo, home } = await hostRepo("host-logs");
     try {
       await runCli(["up", "--json"], { cwd: repo, home, timeoutMs: 120_000 });
@@ -187,7 +187,7 @@ describe("host processes", () => {
   });
 
   it("restarts a running process when its generated config changed", async () => {
-    // `wt up` is a no-op on a live stack, which meant editing worktree.toml and
+    // `grove up` is a no-op on a live stack, which meant editing worktree.toml and
     // re-running it silently kept serving the old ports: the change looked
     // applied and was not. Observed on a real repo.
     const { repo, home } = await hostRepo("host-reconfig");

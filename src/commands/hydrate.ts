@@ -17,7 +17,7 @@ export interface HydrateOptions {
 /**
  * Re-run hydration on an existing worktree.
  *
- * Separate from `wt new` because the need recurs: a `.env` gains a key, a branch
+ * Separate from `grove new` because the need recurs: a `.env` gains a key, a branch
  * changes its lockfile, or a worktree was created by hand with `git worktree add`
  * and arrived broken.
  */

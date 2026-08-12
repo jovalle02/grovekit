@@ -76,7 +76,7 @@ export async function loadContext(cwd = process.cwd()): Promise<Context> {
 
   await remember(root, state).catch(() => {
     // The registry is a cache for commands that run outside any worktree; losing
-    // an entry costs `wt gc` some knowledge, never correctness of this command.
+    // an entry costs `grove gc` some knowledge, never correctness of this command.
   });
 
   return { root, slug: state.slug, branch, config, leases: {} };
@@ -87,7 +87,7 @@ export async function loadContext(cwd = process.cwd()): Promise<Context> {
  *
  * Every command funnels through here, so a worktree created by hand with
  * `git worktree add` gets registered as soon as anything is run in it. That
- * matters for `wt gc`, which is otherwise unable to tell a live worktree of an
+ * matters for `grove gc`, which is otherwise unable to tell a live worktree of an
  * untouched repository from an orphan and would happily delete its containers.
  */
 async function remember(root: string, state: WorktreeState): Promise<void> {
@@ -105,13 +105,13 @@ async function remember(root: string, state: WorktreeState): Promise<void> {
 async function freshSlug(root: string, branch: string): Promise<string> {
   const taken = new Set<string>();
   try {
-    for (const wt of await listWorktrees(root)) {
-      if (path.resolve(wt.path) === root) continue;
-      const other = await readJson<WorktreeState | null>(stateFile(wt.path), null);
+    for (const grove of await listWorktrees(root)) {
+      if (path.resolve(grove.path) === root) continue;
+      const other = await readJson<WorktreeState | null>(stateFile(grove.path), null);
       if (other?.slug) taken.add(other.slug);
     }
   } catch {
-    // Worst case we fall back to the plain slug; `wt up` would then surface the
+    // Worst case we fall back to the plain slug; `grove up` would then surface the
     // clash as a Compose project collision rather than silently sharing one.
   }
   return uniqueSlug(branch, taken);

@@ -125,12 +125,40 @@ child.on("error", (err) => {
 });
 `;
 
+/** How long a process gets to honour SIGTERM before it is killed outright. */
+const TERM_GRACE_MS = 5_000;
+/** How long to wait for the kernel to reap it after SIGKILL. */
+const KILL_GRACE_MS = 2_000;
+
+/** Signal a process group, falling back to the bare pid, ignoring "already gone". */
+function signal(pid: number, sig: NodeJS.Signals): void {
+  try {
+    process.kill(-pid, sig);
+  } catch {
+    try {
+      process.kill(pid, sig);
+    } catch {
+      /* already gone */
+    }
+  }
+}
+
+/** Poll until the pid is gone. Returns false if it outlived the deadline. */
+async function waitForExit(pid: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!isAlive(pid)) return true;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  return !isAlive(pid);
+}
+
 /**
  * Stop a service we started, and everything it spawned.
  *
  * The pid we hold is the supervisor, not the application. Build tools commonly
  * launch the real process as a child, and an orchestrator may start a dozen.
- * Signalling only the pid leaves all of them running and holding the ports  - 
+ * Signalling only the pid leaves all of them running and holding the ports -
  * which looks exactly like `grove down` having done nothing.
  */
 export async function stopProcess(root: string, service: string): Promise<boolean> {
@@ -143,14 +171,16 @@ export async function stopProcess(root: string, service: string): Promise<boolea
       await execSafe("taskkill", ["/PID", String(record.pid), "/T", "/F"]);
     } else {
       // Negative pid signals the process group created by `detached`.
-      try {
-        process.kill(-record.pid, "SIGTERM");
-      } catch {
-        try {
-          process.kill(record.pid, "SIGTERM");
-        } catch {
-          /* already gone */
-        }
+      signal(record.pid, "SIGTERM");
+
+      // SIGTERM is a request, and this function's callers treat its return as
+      // "the port is yours again": `up` restarts a service onto the same leased
+      // port the moment this resolves. Returning while the old process still
+      // held its socket made that restart report `unhealthy` against its own
+      // corpse - rare enough to look like a flake, and it was not one.
+      if (!(await waitForExit(record.pid, TERM_GRACE_MS))) {
+        signal(record.pid, "SIGKILL");
+        await waitForExit(record.pid, KILL_GRACE_MS);
       }
     }
   }

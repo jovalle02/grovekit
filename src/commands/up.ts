@@ -136,6 +136,19 @@ export function markFailedToStart(
   }
 }
 
+/** How long a just-stopped process gets to have its listening socket reclaimed. */
+const PORT_RELEASE_MS = 3_000;
+
+/** Poll until nothing answers on `port`. Returns false if something still does. */
+async function waitPortFree(port: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!(await tcpReachable(port))) return true;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return !(await tcpReachable(port));
+}
+
 /**
  * Launch the host processes this worktree is responsible for.
  *
@@ -180,6 +193,14 @@ async function startHostServices(
         console.log(c.dim(`restarting ${name} - its generated config changed`));
       }
       await stopProcess(ctx.root, name);
+
+      // The process is gone, but the socket it was listening on can outlive it
+      // by a moment. The occupied-port guard below cannot tell that socket from
+      // a stranger's, so give the kernel a bounded window to release it before
+      // asking. Without this the restart accuses the service of squatting on
+      // its own port.
+      const port = ctx.leases[name];
+      if (port !== undefined) await waitPortFree(port, PORT_RELEASE_MS);
     }
 
     // Someone is already on the port we lease for this service, and it is not a

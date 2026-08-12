@@ -76,7 +76,7 @@ async function sessionStart(opts: HookOptions): Promise<void> {
     return;
   }
 
-  const lines = [`git-grove: worktree \`${ctx.slug}\` (branch ${ctx.branch}), stack ${manifest.status}.`];
+  const lines = [`grove: worktree \`${ctx.slug}\` (branch ${ctx.branch}), stack ${manifest.status}.`];
 
   // This worktree's own addresses, spelled out rather than pointed at. It is the
   // single most common thing a session needs, and the most common thing it gets
@@ -127,5 +127,5 @@ async function sessionEnd(opts: HookOptions): Promise<void> {
 
   const result = await compose(ctx, ["stop"]);
   if (opts.json) printJson({ ok: result.code === 0, action: "stop", worktree: ctx.slug });
-  else if (result.code === 0) console.log(`git-grove: stopped ${ctx.slug} (data kept).`);
+  else if (result.code === 0) console.log(`grove: stopped ${ctx.slug} (data kept).`);
 }

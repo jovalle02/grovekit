@@ -2,7 +2,7 @@
 description: Migrate this repo so every git worktree runs its own isolated stack
 ---
 
-Set this repository up for `grove` (git-grove). **You are doing this, not the
+Set this repository up for `grove` (grovekit). **You are doing this, not the
 user** — they run this command and read your summary at the end. The only thing
 they should have to do by hand is answer a question you cannot answer from the
 code.

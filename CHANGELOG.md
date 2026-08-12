@@ -97,7 +97,7 @@ without leaving anything behind.
   emits a new overlay file rather than editing the base one, and renders
   deterministically from a reviewable `.wt/decisions.json`. `decide --heuristic`
   needs no model; the interactive path replaces only that step.
-- **`grove install`** — writes the agent skill, the `/setup-git-grove` command,
+- **`grove install`** — writes the agent skill, the `/setup-grove` command,
   merged `SessionStart`/`SessionEnd` hook entries, and the `.wt/` gitignore rule.
   The hook command is resolved at install time, because a hook pointing at a
   binary not on PATH fails silently.

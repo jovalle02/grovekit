@@ -120,7 +120,7 @@ const child = spawn(rest.join(" "), {
 // is exactly what the pid in .wt/processes.json is taken to mean.
 child.on("exit", (code, signal) => process.exit(signal ? 1 : (code === null ? 0 : code)));
 child.on("error", (err) => {
-  fs.writeSync(fd, "git-grove: could not start: " + err.message + "\\n");
+  fs.writeSync(fd, "grove: could not start: " + err.message + "\\n");
   process.exit(1);
 });
 `;

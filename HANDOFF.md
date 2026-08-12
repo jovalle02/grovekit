@@ -374,7 +374,7 @@ grove adapt validate            [code]   merge, boot, curl every generated URL
 
 ### 5.5 Distribution and agent integration — built
 
-`grove install` writes the skill, `.claude/commands/setup-git-grove.md`, merged
+`grove install` writes the skill, `.claude/commands/setup-grove.md`, merged
 hook entries, the `.gitignore` rule, and an `AGENTS.md` section when that file
 already exists. It does **not** create the overlay — that needs judgment, and is
 `grove adapt`.
@@ -525,7 +525,7 @@ test/
   fixtures/           decisions.json + the byte-compared render output
 examples/sample-app/  fixture: web + api + postgres, overlay, worktree.toml, e2e.mjs
 templates/skills/     the daily-use SKILL.md shipped by `install`
-templates/commands/   /setup-git-grove, which drives the adapt loop
+templates/commands/   /setup-grove, which drives the adapt loop
 ```
 
 

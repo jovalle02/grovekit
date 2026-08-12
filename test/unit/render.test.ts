@@ -98,13 +98,13 @@ describe("isOurBinary", () => {
   it("accepts a shim whose text names the package", async () => {
     const dir = await tmpDir("bin-shim");
     const shim = path.join(dir, "grove.cmd");
-    await write(shim, '@node "%~dp0\\node_modules\\git-grove\\dist\\cli.js" %*\n');
+    await write(shim, '@node "%~dp0\\node_modules\\grovekit\\dist\\cli.js" %*\n');
     assert.equal(await isOurBinary(shim), true);
   });
 
   it("accepts a path inside the package", async () => {
     const dir = await tmpDir("bin-path");
-    const file = path.join(dir, "git-grove", "dist", "cli.js");
+    const file = path.join(dir, "grovekit", "dist", "cli.js");
     await write(file, "#!/usr/bin/env node\n");
     assert.equal(await isOurBinary(file), true);
   });

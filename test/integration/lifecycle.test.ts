@@ -502,8 +502,8 @@ describe("grove install", () => {
     const result = await runCli(["install", "--json"], { cwd: repo, home: await home() });
 
     assert.equal(result.code, 0, result.stderr);
-    assert.equal(await pathExists(path.join(repo, ".claude", "skills", "git-grove", "SKILL.md")), true);
-    assert.equal(await pathExists(path.join(repo, ".claude", "commands", "setup-git-grove.md")), true);
+    assert.equal(await pathExists(path.join(repo, ".claude", "skills", "grove", "SKILL.md")), true);
+    assert.equal(await pathExists(path.join(repo, ".claude", "commands", "setup-grove.md")), true);
 
     const settings = await readJsonFile<{
       hooks: Record<string, { hooks: { command: string }[] }[]>;
@@ -519,7 +519,7 @@ describe("grove install", () => {
     // when neither resolves. Never a name that belongs to another program.
     assert.match(
       settings.hooks.SessionStart?.[0]?.hooks[0]?.command ?? "",
-      /^(ewt|grove|npx --no-install git-grove) hook session-start$/,
+      /^(grove|git-grove|ewt|wt|npx --no-install grovekit) hook session-start$/,
     );
 
     assert.match(await read(path.join(repo, ".gitignore")), /^\.wt\/$/m);
@@ -548,7 +548,7 @@ describe("grove install", () => {
   it("does not overwrite a customised skill without --force", async () => {
     const repo = await makeRepo("install-custom");
     const wtHome = await home();
-    const skill = path.join(repo, ".claude", "skills", "git-grove", "SKILL.md");
+    const skill = path.join(repo, ".claude", "skills", "grove", "SKILL.md");
     await write(skill, "my own words");
 
     const first = await runCli(["install", "--json"], { cwd: repo, home: wtHome });
@@ -825,6 +825,54 @@ describe("install across a rename", () => {
 
     assert.equal(await pathExists(path.join(repo, ".claude", "skills", "easy-worktree")), false);
     assert.equal(await pathExists(path.join(repo, ".claude", "commands", "setup-easy-worktree.md")), false);
-    assert.equal(await pathExists(path.join(repo, ".claude", "skills", "git-grove", "SKILL.md")), true);
+    assert.equal(await pathExists(path.join(repo, ".claude", "skills", "grove", "SKILL.md")), true);
+  });
+});
+
+describe("install never deletes what it just wrote", () => {
+  it("leaves the current skill and command in place across repeated installs", async () => {
+    // A careless rename put the current command file in the legacy-cleanup list,
+    // so install created it and deleted it in the same run. The only symptom was
+    // a file quietly missing afterwards.
+    const repo = await makeRepo("install-self-delete");
+    const wtHome = await home();
+
+    for (const pass of [1, 2]) {
+      await runCli(["install", "--force", "--json"], { cwd: repo, home: wtHome });
+      assert.equal(
+        await pathExists(path.join(repo, ".claude", "skills", "grove", "SKILL.md")),
+        true,
+        `skill missing after pass ${pass}`,
+      );
+      assert.equal(
+        await pathExists(path.join(repo, ".claude", "commands", "setup-grove.md")),
+        true,
+        `slash command missing after pass ${pass}`,
+      );
+    }
+  });
+});
+
+describe("install never deletes what it just wrote", () => {
+  it("leaves the current skill and command in place across repeated installs", async () => {
+    // A careless rename put the current command file in the legacy-cleanup list,
+    // so install created it and deleted it in the same run. The only symptom was
+    // a file quietly missing afterwards.
+    const repo = await makeRepo("install-self-delete");
+    const wtHome = await home();
+
+    for (const pass of [1, 2]) {
+      await runCli(["install", "--force", "--json"], { cwd: repo, home: wtHome });
+      assert.equal(
+        await pathExists(path.join(repo, ".claude", "skills", "grove", "SKILL.md")),
+        true,
+        `skill missing after pass ${pass}`,
+      );
+      assert.equal(
+        await pathExists(path.join(repo, ".claude", "commands", "setup-grove.md")),
+        true,
+        `slash command missing after pass ${pass}`,
+      );
+    }
   });
 });

@@ -1,5 +1,5 @@
 {
-  "name": "git-grove",
+  "name": "grovekit",
   "version": "0.4.0",
   "description": "A grove of git worktrees: every branch gets its own running stack, on its own ports.",
   "type": "module",
@@ -21,12 +21,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jovalle02/git-grove.git"
+    "url": "git+https://github.com/jovalle02/grovekit.git"
   },
   "bugs": {
-    "url": "https://github.com/jovalle02/git-grove/issues"
+    "url": "https://github.com/jovalle02/grovekit/issues"
   },
-  "homepage": "https://github.com/jovalle02/git-grove#readme",
+  "homepage": "https://github.com/jovalle02/grovekit#readme",
   "engines": {
     "node": ">=20.11"
   },

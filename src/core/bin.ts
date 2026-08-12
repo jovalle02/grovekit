@@ -1,15 +1,16 @@
 import fs from "node:fs/promises";
 import { execSafe } from "./exec.js";
 
-export const PACKAGE_NAME = "git-grove";
+export const PACKAGE_NAME = "grovekit";
 
 /**
  * Names this package installs, in the order we prefer to invoke them.
  *
- * `grove` is the command. `git-grove` exists because git dispatches any unknown
- * subcommand to `git-<name>` on PATH, so installing it makes `git grove …` work
- * — and that form can never be shadowed by another program, because git
- * resolves it itself rather than the shell.
+ * `grove` is the command. The `git-grove` binary exists because git dispatches
+ * any unknown subcommand to `git-<name>` on PATH, so installing it makes
+ * `git grove …` work — and that form can never be shadowed by another program,
+ * because git resolves it itself rather than the shell. It depends on the binary
+ * name only, which is why the package can be called something else entirely.
  *
  * `wt` and `ewt` are kept only so that hooks and shells written against the old
  * name keep working. **`wt` is Windows Terminal**: Windows ships `wt.exe` as an

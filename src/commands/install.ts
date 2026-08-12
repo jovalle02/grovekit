@@ -54,16 +54,16 @@ export async function install(opts: InstallOptions): Promise<void> {
 
   written.push(
     await copyTemplate(
-      path.join(templatesDir(), "skills", "git-grove", "SKILL.md"),
-      path.join(root, ".claude", "skills", "git-grove", "SKILL.md"),
+      path.join(templatesDir(), "skills", "grove", "SKILL.md"),
+      path.join(root, ".claude", "skills", "grove", "SKILL.md"),
       opts.force,
     ),
   );
 
   written.push(
     await copyTemplate(
-      path.join(templatesDir(), "commands", "setup-git-grove.md"),
-      path.join(root, ".claude", "commands", "setup-git-grove.md"),
+      path.join(templatesDir(), "commands", "setup-grove.md"),
+      path.join(root, ".claude", "commands", "setup-grove.md"),
       opts.force,
     ),
   );
@@ -111,10 +111,10 @@ export async function install(opts: InstallOptions): Promise<void> {
   }
   if (!resolved.verified) {
     console.log(
-      c.dim("  nothing on PATH is this package; hooks go through npx. `npm i -g git-grove` to fix."),
+      c.dim("  nothing on PATH is this package; hooks go through npx. `npm i -g grovekit` to fix."),
     );
   }
-  console.log(c.dim(`next: \`/setup-git-grove\` in Claude Code, or \`${bin} adapt evidence\` by hand`));
+  console.log(c.dim(`next: \`/setup-grove\` in Claude Code, or \`${bin} adapt evidence\` by hand`));
 
   // Non-zero when anything was left alone, so a caller learns the install was
   // partial instead of assuming every file is now what this version ships.
@@ -151,14 +151,22 @@ type HookEntry = { matcher?: string; hooks: { type: string; command: string }[] 
  */
 function isOurHookCommand(command: string): boolean {
   return new RegExp(
-    `^(${[...BIN_NAMES, `npx --no-install ${PACKAGE_NAME}`, "npx --no-install easy-worktree"].join("|")}) hook (session-start|session-end)$`,
+    `^(${[...BIN_NAMES, `npx --no-install ${PACKAGE_NAME}`, "npx --no-install easy-worktree", "npx --no-install git-grove"].join("|")}) hook (session-start|session-end)$`,
   ).test(command.trim());
 }
+
+/** What this version writes. Never a deletion candidate — see `removeLegacy`. */
+const CURRENT_ARTIFACTS = [
+  path.join(".claude", "skills", "grove"),
+  path.join(".claude", "commands", "setup-grove.md"),
+];
 
 /** Names this tool shipped under before. Their files compete with the current ones. */
 const LEGACY_ARTIFACTS = [
   path.join(".claude", "skills", "easy-worktree"),
   path.join(".claude", "commands", "setup-easy-worktree.md"),
+  path.join(".claude", "skills", "git-grove"),
+  path.join(".claude", "commands", "setup-git-grove.md"),
 ];
 
 /**
@@ -167,10 +175,17 @@ const LEGACY_ARTIFACTS = [
  * Two skills whose descriptions both say "run stacks per worktree" compete for
  * selection, and the loser is chosen at random — so a rename that leaves the old
  * skill in place is worse than no rename at all.
+ *
+ * The guard is not paranoia: a careless rename put the *current* command file in
+ * the legacy list, so `install` created it and then deleted it in the same run,
+ * and the only symptom was a file quietly missing afterwards. Deleting something
+ * we just wrote can never be right, so it is refused here rather than trusted to
+ * whoever edits the list next.
  */
 async function removeLegacy(root: string): Promise<Written[]> {
   const out: Written[] = [];
   for (const rel of LEGACY_ARTIFACTS) {
+    if (CURRENT_ARTIFACTS.includes(rel)) continue;
     const file = path.join(root, rel);
     if (!(await exists(file))) continue;
     await fs.rm(file, { recursive: true, force: true });
@@ -259,7 +274,7 @@ async function appendAgents(file: string, force: boolean): Promise<Written> {
 ${AGENTS_MARKER}
 ## Worktree stacks
 
-This repo uses \`grove\` (git-grove): every git worktree runs its own full stack
+This repo uses \`grove\` (grovekit): every git worktree runs its own full stack
 with its own URLs and its own database.
 
 - Read \`.wt/manifest.json\` for URLs and per-service status. Every command takes

@@ -1,5 +1,5 @@
 ---
-name: git-grove
+name: grove
 description: Create, run, test, or inspect isolated stacks per git worktree. Use when starting the app, running e2e tests, needing a service URL, creating a worktree for a task, or working on something that needs its own isolated environment.
 ---
 

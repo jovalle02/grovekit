@@ -38,7 +38,7 @@ Only browser-facing URLs vary, and they come from `${WT_NAME}`.
 ## Install
 
 ```bash
-npm install -g git-grove
+npm install -g grovekit
 cd your-repo
 grove install     # agent skill, slash command, hooks, .gitignore entry
 grove adapt evidence && grove adapt decide --heuristic && grove adapt render
@@ -264,7 +264,7 @@ repair it. That distinction is the whole reason partial startup is safe.
 `grove install` writes:
 
 - `.claude/skills/git-grove/SKILL.md` — the daily-use skill
-- `.claude/commands/setup-git-grove.md` — a `/setup-git-grove` command that
+- `.claude/commands/setup-grove.md` — a `/setup-grove` command that
   drives the migration
 - `SessionStart` / `SessionEnd` hook entries in `.claude/settings.json`, merged
   rather than overwritten

@@ -1,21 +1,40 @@
-# git-grove
+<p align="center">
+  <img src="assets/logo.png" alt="grovekit" width="420">
+</p>
 
-Every git worktree gets its own fully-deployed, independently addressable stack —
-no port juggling, no config rewriting, and a machine-readable manifest so an agent
-can find it and test against it.
+<p align="center">
+  <b>Every git worktree gets its own running stack, on its own ports.</b><br>
+  Work on three branches at once. Nothing collides. Nothing is configured twice.
+</p>
 
 ```bash
-grove new feat/login      # branch + worktree + hydrate + boot, one call
-grove run pnpm test:e2e   # BASE_URL/API_URL/DATABASE_URL injected, exit code passed through
-grove rm feat-login       # worktree, containers, volumes, leases, all of it
+grove new feat/login       # branch + worktree + deps + ports + running
+grove run pnpm test:e2e    # BASE_URL, API_URL, DATABASE_URL injected
+grove rm feat-login        # worktree, containers, volumes, ports — all of it
 ```
 
-## How it works
+---
 
-Ports only collide *on the host*. A Docker network is a separate address space, so
-two worktrees can both run `web:3000` and `db:5432` and never meet. Compose already
-gives you one network per project name; what it doesn't give you is a way back in.
-That's the proxy's job.
+## The problem
+
+You are on `feat/login`. Someone reports a bug on `main`. You stash, switch, wait
+for the stack to come back, fix it, switch back, and wait again.
+
+So you make a second worktree — and everything collides. Two apps want `:3000`.
+Two databases want `:5432`. You start renumbering by hand, and that number
+ripples through six env files across three layers.
+
+## Why "grove"
+
+A grove is a stand of trees growing together. That is the product: several git
+worktrees, each one fully alive at the same time.
+
+## The idea
+
+**Ports only collide on the host.** A Docker network is a separate address space,
+so two worktrees can both run `web:3000` and `db:5432` and never meet. Compose
+already gives you one network per project name; what it does not give you is a
+way back in. That is the proxy's only job.
 
 ```
 HOST — one published port on the whole machine
@@ -32,21 +51,48 @@ HOST — one published port on the whole machine
 ```
 
 The hostname is the routing key, so no port ever appears in a URL. Everything
-inside the stack — `DATABASE_URL`, `API_URL` — is byte-identical in every worktree.
-Only browser-facing URLs vary, and they come from `${WT_NAME}`.
+*inside* the stack — `DATABASE_URL`, service-to-service calls — is byte-identical
+in every worktree. Only browser-facing URLs vary, and they come from `${WT_NAME}`.
+
+**And when there is no Docker at all**, the same idea reduces to its useful core:
+`grove` leases a distinct host port per worktree and hands it to the process
+through a config file or the environment. See
+[Stacks Docker doesn't run](#stacks-docker-doesnt-run).
 
 ## Install
 
 ```bash
 npm install -g grovekit
-cd your-repo
-grove install     # agent skill, slash command, hooks, .gitignore entry
-grove adapt evidence && grove adapt decide --heuristic && grove adapt render
-grove doctor && grove up
 ```
 
-`grove adapt` generates the two files below. You can also write them by hand — see
-[`examples/sample-app`](examples/sample-app) for a complete working pair.
+One binary: `grove`.
+
+## Quick start
+
+```bash
+cd your-repo
+grove install          # agent skill, /setup-grove command, session hooks, .gitignore
+```
+
+Then, in Claude Code:
+
+```
+/setup-grove
+```
+
+The agent reads your repo, works out what the services are and which ports are
+pinned, writes `worktree.toml`, boots it, and reports back. You review the diff
+and commit it — **to your default branch**, since a worktree inherits its
+branch's files.
+
+After that, day to day:
+
+```bash
+grove new feat/thing       # branch, worktree, deps, ports, started
+cd ../your-repo-feat-thing
+```
+
+Open a second terminal, do the same for another branch, and both run at once.
 
 ## Commands
 
@@ -56,23 +102,49 @@ grove doctor && grove up
 | `grove up [services…]` | start and block until healthy; idempotent |
 | `grove down [services…]` | stop, keeping volumes, data and leases |
 | `grove restart [services…]` | stop and start again — only what you name |
-| `grove rm <worktree>` | delete the worktree and everything it owns |
+| `grove rm <worktree>` | delete a worktree and everything it owns |
 | `grove gc` | reclaim containers, volumes and leases nothing owns |
-| `grove run <cmd…>` | run with this worktree's env injected |
-| `grove status` / `grove ls` | this worktree / this repo's worktrees |
-| `grove ls --all` | every worktree on the machine, with its ports |
-| `grove logs [services…]` | container logs |
+| `grove run <cmd…>` | run with this worktree's environment injected |
+| `grove status` | this worktree: services, ports, health |
+| `grove ls` / `grove ls --all` | this repo's worktrees / every one on the machine |
+| `grove logs [services…]` | container or captured process logs |
 | `grove hydrate` | re-copy gitignored files from the main worktree |
 | `grove adapt <step>` | migrate a repo: evidence → decide → render → validate |
-| `grove install` | wire up the agent skill, slash command and hooks |
+| `grove install` | agent skill, slash command, hooks |
 | `grove doctor` | check the environment and the migration |
 
-Every command takes `--json`. Human output can change freely; **`--json` is a
-contract**.
+Every command takes `--json`. **Human output can change freely; `--json` is a
+contract.**
+
+### Start only what you need
+
+Full stacks are expensive and several may be running at once.
+
+```bash
+grove up                    # everything
+grove up api db             # those, plus their dependencies
+grove up --group backend    # a named set from worktree.toml
+grove up api --no-deps      # exactly api
+```
+
+What you leave out is `not-started` — a distinct state from `unhealthy`. The
+stack still reports `ready`, and nothing will try to "repair" a service you left
+out on purpose. Adding one later (`grove up web`) extends the set without
+restarting what is already running.
+
+### Everything is scoped to your worktree
+
+`down`, `restart` and `rm` cannot reach another worktree. Containers are
+addressed by the Compose project name — which *is* your worktree's slug — and
+host processes by that worktree's own ledger. This is asserted by tests, not
+merely believed.
+
+`grove ls --all` shows every worktree on the machine with its ports: the command
+for "who is holding that port?"
 
 ## Setup
 
-Two files next to your compose file. `docker-compose.yml` is never modified.
+Two files next to your compose file. **`docker-compose.yml` is never modified.**
 
 **`docker-compose.worktree.yml`** — an overlay, applied with `-f base -f overlay`:
 
@@ -89,7 +161,7 @@ services:
       - traefik.http.services.${WT_NAME}-api.loadbalancer.server.port=4000
 
   db:
-    ports: !override ["${WT_PORT_DB}:5432"]   # leased host port, see gotcha below
+    ports: !override ["${WT_PORT_DB}:5432"]   # leased host port — see gotchas
     networks: [internal]
 
 networks:
@@ -99,7 +171,7 @@ networks:
     name: ${WT_PROXY_NETWORK}
 ```
 
-**`worktree.toml`** — what each service is, and how to tell it's up:
+**`worktree.toml`** — what each service is, and how to tell it is up:
 
 ```toml
 [project]
@@ -132,18 +204,24 @@ link = ["node_modules", "apps/*/node_modules"]
 run  = ["pnpm install --frozen-lockfile"]
 ```
 
-Copy what you may edit per worktree; link what is large and identical. `grove` decides
-between `link` and `run` by hashing the lockfiles: identical means sharing one
-`node_modules` is safe, different means the branch changed its dependencies and it
-installs instead.
+Copy what you may edit per worktree; link what is large and identical. `grove`
+decides between `link` and `run` by hashing the lockfiles: identical means one
+`node_modules` is safe to share, different means the branch changed its
+dependencies and it installs instead.
+
+A complete working pair lives in [`examples/sample-app`](examples/sample-app).
+
+Unknown keys are rejected. A misspelled option that parses fine and does nothing
+is the most expensive kind of typo, so there is no such thing here.
 
 ## Stacks Docker doesn't run
 
 Not every repo is containerised. An orchestrator that launches its own child
 processes, a compiled server, a dev server you start yourself — these bind host
-ports directly, so there's no Docker network to hide identical ports inside and
-the proxy has nothing to route to. What still collides is the port, and that
-part `grove` can own:
+ports directly, so there is no Docker network to hide identical ports inside and
+the proxy has nothing to route to.
+
+What still collides is the port, and that part `grove` can own:
 
 ```toml
 [project]
@@ -172,73 +250,20 @@ health = { tcp = true }
 SERVER_URL = "https://localhost:${WT_PORT_SERVER}"
 ```
 
-`grove up` then renders the config, starts the process with that environment,
-records its pid and waits for it to answer — the same contract a container gets.
-`grove down` stops it and everything it spawned, `grove logs server` shows its output.
-So `grove new feat/x` ends with a **running** stack, and two worktrees run at once.
+`grove up` renders the config, starts the process with that environment, records
+its pid and waits for it to answer — the same contract a container gets. `down`
+stops it and everything it spawned; `logs` shows its captured output; a rendered
+file that changes restarts the process that reads it.
 
-A service with no `start` is a port reservation this tool observes but doesn't
-own: never `unhealthy`, never blocking the stack from `ready`, shown as
-`listening` or `not running`. Only what `grove` launches is what `grove` reports on.
-
-Rendered files are rewritten only when their content changes — those paths are
-what a hot-reloading dev server watches — and `grove doctor` checks they're
-gitignored, since committed they'd hand every worktree the same ports.
-
-**Watch for launcher wrappers that override the environment.** Some run commands
-apply their own profile's variables *over* the ambient environment, so what `grove`
-injects is silently ignored and the process comes up on its hardcoded port. If a
-leased port shows in `grove status --env` but the process ignores it, that is
-usually why — look for a flag that skips the profile.
-
-## Gotchas this repo learned the hard way
-
-All of these were found by running it, not by reading docs.
-
-**On Windows, `grove` is Windows Terminal.** It ships as an app execution alias on
-every user's PATH, so whether `grove` means this tool comes down to PATH order —
-and when it loses, `grove up` opens a terminal window. The package installs as
-`ewt` too; prefer that on Windows. `grove doctor` reports which one is live, and
-`grove install` verifies the binary it writes into a hook is actually this package.
-
-**`!reset` erases, `!override` replaces.** `ports: !reset ["8080:80"]` silently
-publishes *nothing* — the value is ignored. Use `!override` whenever you mean
-"replace with this". `grove doctor` checks for it.
-
-**Traefik must be ≥ 3.6 on Docker Engine 29+.** Earlier 3.x negotiates a Docker API
-version below 1.44, which Engine 29 rejects. Traefik still starts and still
-answers — with 404 for everything, and only its container logs say why. `grove doctor`
-checks this too.
-
-**Every service on the shared network needs a `<name>.internal` alias.** A bare
-`api` is ambiguous there, because every worktree has one. It works with a single
-worktree and goes wrong with two. `grove adapt validate` checks for it.
-
-**A socket probe cannot predict whether Docker can publish a port.** On Windows a
-port can be reserved such that `docker run -p` fails while a plain `listen` on
-`0.0.0.0` succeeds. Docker is the authority; the pre-check is advisory.
-
-**Docker Desktop on Windows often holds `:80`** with no containers running. Set
-`[proxy] port` — URLs then include the port, which works fine.
-
-**Never commit `.wt/`.** A committed `state.json` makes a new worktree inherit
-another worktree's slug and drive its containers. The tool discards state whose
-recorded `root` doesn't match, but the `.gitignore` entry is the real fix — and
-`grove install` writes it for you.
-
-**`*.localhost` does not resolve via the Windows resolver.** Chrome handles it
-internally, but `curl`, Node `fetch` and Playwright's request context do not.
-Default the domain to `localtest.me`.
-
-**`NEXT_PUBLIC_*` / `VITE_*` are baked at build time.** Setting them under
-`environment:` does nothing for the browser bundle — pass them as `build.args`, or
-serve a runtime `/env.js`.
+A service with **no `start`** is a port reservation `grove` watches but does not
+own: never `unhealthy`, never blocking the stack from `ready`. Only what `grove`
+launches is what `grove` reports on.
 
 ## The manifest
 
 `.wt/manifest.json`, inside the worktree so a relative read always resolves.
-Written on success *and* on failure, with logs attached, so a consumer learns which
-layer broke and why.
+Written on success *and* on failure, with logs attached, so a consumer learns
+which layer broke and why.
 
 ```json
 {
@@ -263,28 +288,74 @@ repair it. That distinction is the whole reason partial startup is safe.
 
 `grove install` writes:
 
-- `.claude/skills/git-grove/SKILL.md` — the daily-use skill
-- `.claude/commands/setup-grove.md` — a `/setup-grove` command that
-  drives the migration
-- `SessionStart` / `SessionEnd` hook entries in `.claude/settings.json`, merged
-  rather than overwritten
+- `.claude/skills/grove/SKILL.md` — the daily-use skill
+- `.claude/commands/setup-grove.md` — the `/setup-grove` migration command
+- `SessionStart` / `SessionEnd` hooks, **merged** into `.claude/settings.json`
+  rather than overwriting it
 - `.wt/` in `.gitignore`, and an `AGENTS.md` section if that file exists
 
-Hooks call `grove hook <event>`, resolved at install time to a global `grove` or to
-`npx --no-install git-grove` — a hook pointing at a binary that isn't on PATH
-fails silently, which is worse than not installing it.
+`SessionStart` tells each session its **own** addresses:
 
-`SessionStart` reports the worktree and what to run. `SessionEnd` does nothing
-unless you set `[hooks] on_session_end = "down"`: that hook has no turn to render a
-question into, so only reversible actions belong there.
+```
+grove: worktree `feat-login` (branch feat/login), stack ready.
+  Addresses for THIS worktree — use these, never a hardcoded port:
+    web                http://web.feat-login.localtest.me:8081
+    api                http://api.feat-login.localtest.me:8081
+    db                 localhost:21750
+  Also running: fix-billing (23906 20694 21008 +12).
+  Those belong to other worktrees. Do not use their ports, or stop them.
+```
+
+The hook command is resolved at install time and **verified to be this package**.
+A hook pointing at a binary that is not on PATH fails silently, which is worse
+than not installing one at all.
+
+`SessionEnd` does nothing unless you set `[hooks] on_session_end = "down"`: that
+hook has no turn to render a question into, so only reversible actions belong
+there.
+
+## Gotchas this project learned the hard way
+
+Every one was found by running it, not by reading docs. The full list, with what
+each cost, is in [DESIGN.md](DESIGN.md).
+
+**`!reset` erases, `!override` replaces.** `ports: !reset ["8080:80"]` publishes
+*nothing* — the value is ignored. `grove doctor` checks for it.
+
+**Traefik must be ≥ 3.6 on Docker Engine 29+.** Earlier 3.x negotiates a Docker
+API version below 1.44, which Engine 29 rejects. Traefik still starts and still
+answers — with 404 for everything, and only its container logs say why.
+
+**Every service on the shared network needs a `<name>.internal` alias.** A bare
+`api` is ambiguous there, because every worktree has one. It works with a single
+worktree and goes wrong with two.
+
+**A socket probe cannot predict whether Docker can publish a port.** On Windows a
+port can be reserved such that `docker run -p` fails while a plain `listen` on
+`0.0.0.0` succeeds. Docker is the only authority.
+
+**Never commit `.wt/`.** A committed `state.json` makes a new worktree inherit
+another's identity and drive its containers. `grove install` writes the
+`.gitignore` entry for you.
+
+**`*.localhost` does not resolve via the Windows resolver.** Chrome handles it
+internally; `curl`, Node `fetch` and Playwright do not. Default to `localtest.me`.
+
+**`NEXT_PUBLIC_*` / `VITE_*` are baked at build time.** Setting them under
+`environment:` does nothing for the browser bundle — use `build.args`, or serve a
+runtime `/env.js`.
+
+**Watch for launcher wrappers that override the environment.** Some run commands
+apply their own profile's variables *over* the ambient ones, so an injected port
+is silently ignored and the process comes up on its hardcoded one.
 
 ## Development
 
 ```bash
 npm install
 npm run typecheck
-npm test                       # unit + git-backed integration, no Docker needed
-WT_TEST_DOCKER=1 npm test      # adds the full boot-a-real-stack suite
+npm test                       # 203 tests, no Docker needed
+WT_TEST_DOCKER=1 npm test      # adds the suite that boots real stacks
 npm run build
 ```
 

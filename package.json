@@ -12,6 +12,7 @@
   "files": [
     "dist",
     "templates",
+    "assets",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"

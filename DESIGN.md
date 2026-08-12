@@ -1,7 +1,8 @@
-# git-grove — implementation handoff
+# grovekit — design notes
 
-Read this first. It carries the full design rationale, what is built and proven,
-what is missing, and the traps that already cost a session's debugging. Written
+Read this before changing anything load-bearing. It carries the design
+rationale, what is built and proven, what is missing, and every trap that has
+already cost real debugging time. Written
 2026-08-10 at the end of M1; updated the same day at the end of M2.
 
 ---
@@ -64,7 +65,7 @@ tags per project) or serve a runtime `/env.js` that sets `window.__ENV__`.
 
 ## 2. Where we are: M1 and M2 are built, tested and verified
 
-Repo: `<this repo>` (~4,400 lines TypeScript plus
+Roughly 5,000 lines of TypeScript plus
 ~1,600 lines of tests; ESM, Node ≥ 20.11, one runtime dep: `smol-toml`).
 
 ### Commands that work
@@ -427,7 +428,7 @@ Also still open:
 
 ---
 
-## 6. This machine
+## 6. The machine these were found on
 
 - Windows 11, Node 24.15.0, Docker 29.2.0 (API 1.53, **MinAPIVersion 1.44**),
   Compose v5.0.2, Claude Code 2.1.225, Codex 0.144.4.

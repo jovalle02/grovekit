@@ -191,7 +191,7 @@ Written on success **and on failure**, with logs attached, so a consumer learns
 - **Human output can change freely; `--json` is a contract.** Never ask a model to
   parse the pretty table.
 - Errors are JSON too: `{ ok: false, error, hint?, service?, logs? }`.
-- Health probing goes **through the proxy URL**, not straight at the container  - 
+- Health probing goes **through the proxy URL**, not straight at the container -
   that validates routing as well as liveness and absorbs the second or two Traefik
   needs to notice a new container.
 
@@ -412,7 +412,7 @@ differs across Docker hosts.
 
 The **shared-network alias collision** is now checked by `grove adapt validate`, and
 `grove adapt render` always emits the aliases. It is still not checked by
-`grove doctor`, so a hand-written overlay that skips `validate` can still ship it  - 
+`grove doctor`, so a hand-written overlay that skips `validate` can still ship it -
 and it works with one worktree, going ambiguous only with two.
 
 Also still open:

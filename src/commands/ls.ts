@@ -151,6 +151,6 @@ export async function ls(opts: LsOptions): Promise<void> {
 
   if (!opts.all) {
     console.log();
-    console.log(c.dim("  grove ls --all  - every worktree on this machine, across repos"));
+    console.log(c.dim("  grove ls --all - every worktree on this machine, across repos"));
   }
 }

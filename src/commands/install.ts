@@ -75,7 +75,7 @@ export async function install(opts: InstallOptions): Promise<void> {
 
   written.push(await appendGitignore(path.join(root, ".gitignore")));
 
-  // Codex reads AGENTS.md rather than skills, so mirror the essentials there  - 
+  // Codex reads AGENTS.md rather than skills, so mirror the essentials there -
   // but only if the file already exists. Creating one uninvited is presumptuous.
   const agents = path.join(root, "AGENTS.md");
   if (await exists(agents)) written.push(await appendAgents(agents, opts.force));

@@ -16,27 +16,27 @@ services:
     networks:
       internal:
         aliases:
-          - api.internal
+ - api.internal
       wt-proxy: {}
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.${WT_NAME}-api.rule=Host(`api.${WT_NAME}.${WT_DOMAIN}`)
-      - traefik.http.services.${WT_NAME}-api.loadbalancer.server.port=4000
-      - wt.managed=true
+ - traefik.enable=true
+ - traefik.http.routers.${WT_NAME}-api.rule=Host(`api.${WT_NAME}.${WT_DOMAIN}`)
+ - traefik.http.services.${WT_NAME}-api.loadbalancer.server.port=4000
+ - wt.managed=true
 
   db:
     # Not HTTP, so the proxy cannot front it: it keeps a real host port,
     # leased per worktree instead of hardcoded.
     ports: !override
-      - "${WT_PORT_DB}:5432"
+ - "${WT_PORT_DB}:5432"
     environment:
       WT_NAME: ${WT_NAME}
     networks:
       internal:
         aliases:
-          - db.internal
+ - db.internal
     labels:
-      - wt.managed=true
+ - wt.managed=true
 
   web:
     ports: !reset []
@@ -47,13 +47,13 @@ services:
     networks:
       internal:
         aliases:
-          - web.internal
+ - web.internal
       wt-proxy: {}
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.${WT_NAME}-web.rule=Host(`web.${WT_NAME}.${WT_DOMAIN}`)
-      - traefik.http.services.${WT_NAME}-web.loadbalancer.server.port=3000
-      - wt.managed=true
+ - traefik.enable=true
+ - traefik.http.routers.${WT_NAME}-web.rule=Host(`web.${WT_NAME}.${WT_DOMAIN}`)
+ - traefik.http.services.${WT_NAME}-web.loadbalancer.server.port=3000
+ - wt.managed=true
 
 networks:
   internal:

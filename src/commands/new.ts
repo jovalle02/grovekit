@@ -38,7 +38,7 @@ export interface NewOptions {
  * Create a worktree and leave it running.
  *
  * This exists because the honest version of the workflow is four commands with
- * error handling between them - branch, `git worktree add`, hydrate, `grove up`  - 
+ * error handling between them - branch, `git worktree add`, hydrate, `grove up` -
  * and both humans and agents chain those badly. One call, one JSON result, and
  * a half-built worktree is rolled back rather than left behind.
  */

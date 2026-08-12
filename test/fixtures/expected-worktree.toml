@@ -44,4 +44,4 @@ data = ["db"]
 DATABASE_URL = "postgres://app:app@${WT_HOST_DB}/app"
 
 # Review before trusting this file:
-#   - web: assumed HTTP and given a URL, dropping its published port
+# - web: assumed HTTP and given a URL, dropping its published port

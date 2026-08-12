@@ -33,7 +33,7 @@ const empty = (): Registry => ({ schemaVersion: REGISTRY_SCHEMA_VERSION, worktre
  *
  * It is a cache, never an authority: `grove ls` still enumerates from git, because a
  * worktree created by hand is just as real as one created by `grove new`. What the
- * registry buys is the ability to answer questions from *outside* any worktree  - 
+ * registry buys is the ability to answer questions from *outside* any worktree -
  * chiefly `grove gc`, which has to recognise containers and leases whose worktree no
  * longer exists and therefore cannot be asked.
  */

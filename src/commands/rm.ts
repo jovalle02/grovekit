@@ -15,7 +15,7 @@ import { leaseHostPorts } from "./up.js";
  * Path containment, done properly.
  *
  * A plain `startsWith` says `app-feature` is inside `app-feat`, so sibling
- * worktrees named after related branches - which is the normal case here  - 
+ * worktrees named after related branches - which is the normal case here -
  * would refuse to be removed. The separator is what makes it a real boundary.
  */
 function isInside(child: string, parent: string): boolean {
@@ -124,7 +124,7 @@ export async function rm(opts: RmOptions): Promise<void> {
   try {
     await removeWorktree(repo, target.path, opts.force);
   } catch (err) {
-    // On Windows this is nearly always core.longpaths, and git does not say so  - 
+    // On Windows this is nearly always core.longpaths, and git does not say so -
     // it exits 255 with a generic message. Anyone who has hit it before will
     // recognise it; anyone who has not will go looking in the wrong place.
     const longPaths =

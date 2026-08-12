@@ -59,7 +59,7 @@ repository, which is where every fix below came from.
   host process has none, so what `grove` owns instead is the port: one lease per
   worktree.
 - **`start` on a host service.** `grove up` renders the config, launches the process
-  with the worktree's environment, records its pid and waits for it to answer  - 
+  with the worktree's environment, records its pid and waits for it to answer -
   the same contract a container gets. `grove down` stops it and everything it
   spawned, `grove logs` shows its captured output, `grove rm` stops it before deleting
   the directory. So `grove new` ends with a *running* stack rather than instructions
@@ -161,7 +161,7 @@ without leaving anything behind.
 
 - **`grove up` exited 0 for a stack with a crashed service.** A service that dies
   before the first `compose ps` was reported `stopped` rather than `starting`, so
-  it was never probed, never marked unhealthy and never had its logs attached  - 
+  it was never probed, never marked unhealthy and never had its logs attached -
   apparent success for a broken stack. Found by the new Docker suite.
 - `grove logs --json` reported `services: []` for a whole-stack query, which reads
   as "none" rather than "all".

@@ -69,7 +69,7 @@ Two things worth getting right:
 
 - **Browser-facing env vars are the only ones that change per worktree.**
   `NEXT_PUBLIC_*`, `VITE_*`, `REACT_APP_*` are read by a browser, which is not on
-  the Docker network, so they must use the external hostname. Everything else  - 
+  the Docker network, so they must use the external hostname. Everything else -
   `DATABASE_URL`, server-to-server calls - stays on service names and is
   byte-identical in every worktree.
 - **`NEXT_PUBLIC_*` and friends are baked at build time.** Setting them under
@@ -140,7 +140,7 @@ This is the whole job, and it is a reading task. Search for port literals in:
 - the startup path itself - `listen(`, `--port`, `PORT =`, `:8080`
 - any orchestrator that starts other processes, which usually pins several
 
-For each one, record: what it is, which port, and **how it is configured**  - 
+For each one, record: what it is, which port, and **how it is configured** -
 because that determines how `grove` hands the new port back. There are two ways, and
 you will usually need both:
 

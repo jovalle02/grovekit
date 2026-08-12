@@ -72,7 +72,7 @@ function renderPorts(svc: Decision): string[] {
     "    # Not HTTP, so the proxy cannot front it: it keeps a real host port,",
     "    # leased per worktree instead of hardcoded.",
     "    ports: !override",
-    `      - "\${WT_PORT_${envKey(svc.name)}}:${svc.containerPort}"`,
+    ` - "\${WT_PORT_${envKey(svc.name)}}:${svc.containerPort}"`,
   ];
 }
 
@@ -87,7 +87,7 @@ function renderEnvironment(svc: Decision): string[] {
 }
 
 function renderNetworks(svc: Decision): string[] {
-  const out = ["    networks:", "      internal:", "        aliases:", `          - ${svc.name}.internal`];
+  const out = ["    networks:", "      internal:", "        aliases:", ` - ${svc.name}.internal`];
   // Only services with ingress join the shared network; the rest stay private,
   // which keeps the shared network's namespace as uncrowded as possible.
   if (svc.subdomain) out.push("      wt-proxy: {}");
@@ -98,14 +98,14 @@ function renderLabels(svc: Decision): string[] {
   const out = ["    labels:"];
   if (svc.subdomain && svc.containerPort !== null) {
     const router = `\${WT_NAME}-${svc.name}`;
-    out.push("      - traefik.enable=true");
+    out.push(" - traefik.enable=true");
     out.push(
-      `      - traefik.http.routers.${router}.rule=Host(\`${svc.subdomain}.\${WT_NAME}.\${WT_DOMAIN}\`)`,
+      ` - traefik.http.routers.${router}.rule=Host(\`${svc.subdomain}.\${WT_NAME}.\${WT_DOMAIN}\`)`,
     );
-    out.push(`      - traefik.http.services.${router}.loadbalancer.server.port=${svc.containerPort}`);
+    out.push(` - traefik.http.services.${router}.loadbalancer.server.port=${svc.containerPort}`);
   }
   // What `grove gc` sweeps by. Without it an orphaned container is invisible.
-  out.push("      - wt.managed=true");
+  out.push(" - wt.managed=true");
   return out;
 }
 
@@ -165,7 +165,7 @@ export function renderConfig(decisions: Decisions): string {
 
   if (decisions.review.length > 0) {
     out.push("# Review before trusting this file:");
-    for (const note of decisions.review) out.push(`#   - ${note}`);
+    for (const note of decisions.review) out.push(`# - ${note}`);
     out.push("");
   }
 

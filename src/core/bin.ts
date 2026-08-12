@@ -64,7 +64,7 @@ export async function isOurBinary(file: string): Promise<boolean> {
  * How a hook or a doc should invoke this tool on *this* machine.
  *
  * Resolved at write time rather than assumed, because a hook that shells out to
- * a binary which is not on PATH - or is a different program with the same name  - 
+ * a binary which is not on PATH - or is a different program with the same name -
  * fails silently: the session starts, nothing is injected, and nothing anywhere
  * says why.
  */

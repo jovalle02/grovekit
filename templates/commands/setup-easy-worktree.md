@@ -2,18 +2,36 @@
 description: Migrate this repo so every git worktree runs its own isolated stack
 ---
 
-Set this repository up for `wt` (easy-worktree). Work through the steps in order
-and stop at the first one that fails — a later step assumes the earlier one held.
+Set this repository up for `wt` (easy-worktree). **You are doing this, not the
+user** — they run this command and read your summary at the end. The only thing
+they should have to do by hand is answer a question you cannot answer from the
+code.
 
-## 1. Gather evidence (no guessing)
+Work through the steps in order and stop at the first one that fails — a later
+step assumes the earlier one held.
+
+## 0. Which shape is this repo?
 
 ```
 wt adapt evidence --json
 ```
 
-This runs `docker compose config --format json`, so anchors, `extends`,
-`include`, profiles and `env_file` are already resolved. **Never read the compose
-YAML with a regex** — read this output.
+Read `containerised` in the output.
+
+- **`true`** — there is a compose file. Continue at step 1; `wt adapt` does most
+  of the work and your judgment is needed only for the decisions file.
+- **`false`** — nothing here is containerised. **Skip to "Repos with no
+  containers"** at the bottom. `adapt decide` and `adapt render` have nothing to
+  read, and you write `worktree.toml` yourself.
+
+A repo can be both — containerised services plus processes run on the host. Do
+steps 1–4 for the compose part, then add `runtime = "host"` entries for the rest.
+
+## 1. Gather evidence (no guessing)
+
+Step 0 already produced it. It ran `docker compose config --format json`, so
+anchors, `extends`, `include`, profiles and `env_file` are already resolved.
+**Never read the compose YAML with a regex** — read this output.
 
 For each service it reports: image, build context, published ports, `expose`,
 environment, depends_on, an existing healthcheck, and a `guess` from the
@@ -102,3 +120,102 @@ Tell the user, briefly:
 - which kept a host port, and why
 - anything with `confidence: "low"` that they should check
 - the one-line commands they now have: `wt new <branch>`, `wt up`, `wt run <cmd>`
+
+---
+
+# Repos with no containers
+
+Nothing is containerised, so there is no proxy, no hostnames, and no compose file
+to read. Every service is `runtime = "host"`: `wt` leases a distinct port per
+worktree and hands it back. **You write `worktree.toml`** — `adapt` cannot,
+because the ports live in code rather than in a machine-readable file.
+
+## A. Find every hardcoded port
+
+This is the whole job, and it is a reading task. Search for port literals in:
+
+- launch/run profiles (`launchSettings.json`, `.vscode/launch.json`, `Procfile`)
+- `.env*` files and any config the app reads at startup
+- dev-server config (`vite.config.*`, `next.config.*`, `webpack.config.*`)
+- the startup path itself — `listen(`, `--port`, `PORT =`, `:8080`
+- any orchestrator that starts other processes, which usually pins several
+
+For each one, record: what it is, which port, and **how it is configured** —
+because that determines how `wt` hands the new port back. There are two ways, and
+you will usually need both:
+
+- **read from a file at startup** → a `[render]` template writes it
+- **read from an environment variable** → an `[env]` entry supplies it
+
+A port that is a literal in code with no override is a blocker. Say so in your
+report and suggest the smallest change that makes it configurable, in the style
+the surrounding code already uses. **Do not make that change without asking.**
+
+## B. Write worktree.toml
+
+```toml
+[project]
+name = "<repo>"
+compose = []                 # nothing containerised
+
+[[services]]
+name = "server"              # the thing you start; one entry per process
+layer = "backend"
+runtime = "host"
+start = "<the command a developer runs today>"
+health = { tcp = true }
+
+[[services]]
+name = "api-grpc"            # no `start`: reserve a port for something the
+layer = "backend"            # above process opens itself
+runtime = "host"
+health = { tcp = true }
+
+[render]
+"<config file the app reads>" = """
+{ "ports": { "apiGrpc": ${WT_PORT_API_GRPC} } }
+"""
+
+[env]
+SERVER_URL = "https://localhost:${WT_PORT_SERVER}"
+```
+
+Rules that matter:
+
+- **One `start` per *process*, not per port.** An orchestrator that launches five
+  services is one entry with `start`; the other four are port reservations.
+- The env var name for a service is `WT_PORT_` + its name uppercased, with
+  non-alphanumerics as `_`. `api-grpc` → `WT_PORT_API_GRPC`.
+- Every rendered file must be gitignored. Committed, it hands every worktree the
+  same ports — `wt doctor` checks this.
+- `[hydrate]` for what git will not bring: `link` a `node_modules`-shaped
+  directory, `copy` a `.env`, `run` the install command.
+
+## C. Verify, and expect the environment to fight you
+
+```
+wt doctor            # config valid, generated files ignored
+wt up                # renders, starts, waits
+wt status            # every service and the port it is on
+```
+
+Then check the process **actually took the leased port** — do not assume it did:
+
+```
+wt logs <service>    # what did it say it was listening on?
+```
+
+If `wt status --env` shows a leased port but the process came up on its old one,
+the launcher is overriding the environment. Many run commands apply their own
+profile's variables *over* the ambient ones. Look for a flag that skips the
+profile, and then supply whatever that profile was setting via `[env]`.
+
+Finally, prove the point: `wt new feat/scratch`, and confirm both worktrees run
+at once on different ports. Then `wt rm feat-scratch`.
+
+## D. Report
+
+- every port now leased, and what reads it
+- anything still hardcoded that you could not make configurable, and the change
+  you would suggest
+- whether two worktrees actually ran simultaneously, or why not

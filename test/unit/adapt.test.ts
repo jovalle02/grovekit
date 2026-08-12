@@ -78,6 +78,7 @@ describe("decideHeuristically", () => {
     project: "demo",
     root: "/repo",
     composeFiles: ["docker-compose.yml"],
+    containerised: true,
     warnings: [],
     services: [
       evidenceFor({

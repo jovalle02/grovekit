@@ -700,3 +700,28 @@ describe("wt new default base", () => {
     assert.equal(await pathExists(path.join(payload.worktree.root, "MARKER.txt")), true);
   });
 });
+
+describe("wt adapt on a repo with no containers", () => {
+  it("reports the shape instead of failing, and says what to do", async () => {
+    // The setup command starts here, and an agent following it needs to be told
+    // which of the two paths it is on. Throwing "no compose file" tells it
+    // nothing about the other one.
+    const repo = await makeRepo("adapt-hostonly");
+    await fs.rm(path.join(repo, "docker-compose.yml"));
+    await fs.rm(path.join(repo, "docker-compose.worktree.yml"));
+
+    const result = await runCli(["adapt", "evidence", "--json"], {
+      cwd: repo,
+      home: await home(),
+    });
+
+    assert.equal(result.code, 0, "not an error — it is the other supported shape");
+    const evidence = result.json<{ containerised: boolean; services: unknown[]; warnings: string[] }>();
+    assert.equal(evidence.containerised, false);
+    assert.deepEqual(evidence.services, []);
+    assert.ok(
+      evidence.warnings.some((w) => /runtime = "host"/.test(w)),
+      "it should name the path to take instead",
+    );
+  });
+});

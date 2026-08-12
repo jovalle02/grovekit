@@ -42,6 +42,12 @@ export interface Evidence {
   project: string;
   root: string;
   composeFiles: string[];
+  /**
+   * False when the repo has no compose file at all — the other supported shape,
+   * and the one `adapt` cannot do for you, because there is no machine-readable
+   * description of the services to read.
+   */
+  containerised: boolean;
   services: ServiceEvidence[];
   warnings: string[];
 }
@@ -113,8 +119,30 @@ export async function gatherEvidence(
   const warnings: string[] = [];
   const files = opts.files?.length ? opts.files : await findComposeFiles(root);
 
+  // A repo with no compose file is not a failure — it is the other supported
+  // shape, and the one `adapt` genuinely cannot do for you: there is no
+  // machine-readable description of the services to read, so they have to be
+  // identified from the code. Say that plainly rather than throwing. The caller
+  // is usually an agent following the setup command, and an exception tells it
+  // nothing about what to do instead.
   if (files.length === 0) {
-    throw new Error(`No compose file found in ${root} (looked for ${COMPOSE_CANDIDATES.join(", ")}).`);
+    return {
+      schemaVersion: EVIDENCE_SCHEMA_VERSION,
+      project: path.basename(root),
+      root,
+      composeFiles: [],
+      containerised: false,
+      services: [],
+      warnings: [
+        `No compose file in ${root} (looked for ${COMPOSE_CANDIDATES.join(", ")}).`,
+        `Nothing here is containerised, so every service is runtime = "host": wt`,
+        `leases a port for each and hands it back through [render] or [env].`,
+        `\`adapt decide\` and \`adapt render\` have nothing to read — write`,
+        `worktree.toml directly. What goes in it is one entry per hardcoded port,`,
+        `which you find by reading the code: launch profiles, .env files, dev-server`,
+        `config, and port literals in startup paths.`,
+      ],
+    };
   }
 
   const args = ["compose", ...files.flatMap((f) => ["-f", path.resolve(root, f)]), "config", "--format", "json"];
@@ -143,6 +171,7 @@ export async function gatherEvidence(
     project: doc.name ?? path.basename(root),
     root,
     composeFiles: files,
+    containerised: true,
     services,
     warnings,
   };

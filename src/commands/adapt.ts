@@ -78,6 +78,17 @@ async function evidenceStep(root: string, opts: AdaptOptions): Promise<void> {
     return;
   }
 
+  // Not an error, and not something the rest of the pipeline can help with.
+  // Explain the other path instead of printing an empty service table.
+  if (!evidence.containerised) {
+    console.log(`${c.bold(evidence.project)} ${c.yellow("— nothing containerised")}`);
+    console.log();
+    for (const line of evidence.warnings) console.log(`  ${c.dim(line)}`);
+    console.log();
+    console.log(c.dim(`written to ${path.relative(root, evidenceFile(root))}`));
+    return;
+  }
+
   console.log(`${c.bold(evidence.project)} ${c.dim(evidence.composeFiles.join(" + "))}`);
   console.log();
   for (const svc of evidence.services) {

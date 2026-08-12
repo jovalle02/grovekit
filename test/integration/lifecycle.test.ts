@@ -776,3 +776,55 @@ describe("session-start hook", () => {
     assert.match(result.stdout, /db\s+localhost:2\d{4}/, "the leased port is spelled out");
   });
 });
+
+describe("install across a rename", () => {
+  it("removes its own hook under an old name, and keeps the user's", async () => {
+    // A rename that leaves both installed injects the session context twice, and
+    // the stale entry keeps working — so nothing ever surfaces it.
+    const repo = await makeRepo("install-rename");
+    const wtHome = await home();
+    await write(
+      path.join(repo, ".claude", "settings.json"),
+      JSON.stringify(
+        {
+          hooks: {
+            SessionStart: [
+              { hooks: [{ type: "command", command: "ewt hook session-start" }] },
+              { hooks: [{ type: "command", command: "echo mine" }] },
+            ],
+          },
+        },
+        null,
+        2,
+      ),
+    );
+
+    await runCli(["install", "--json"], { cwd: repo, home: wtHome });
+
+    const settings = await readJsonFile<{
+      hooks: Record<string, { hooks: { command: string }[] }[]>;
+    }>(path.join(repo, ".claude", "settings.json"));
+    const commands = settings.hooks.SessionStart?.flatMap((e) => e.hooks.map((h) => h.command)) ?? [];
+
+    assert.ok(commands.includes("echo mine"), "the user's own hook must survive");
+    assert.equal(
+      commands.filter((cmd) => /hook session-start$/.test(cmd)).length,
+      1,
+      `exactly one of ours should remain, got: ${commands.join(" | ")}`,
+    );
+  });
+
+  it("removes a skill left behind by the old name", async () => {
+    // Two skills whose descriptions both say "stacks per worktree" compete for
+    // selection, and the loser is picked at random.
+    const repo = await makeRepo("install-legacy-skill");
+    await write(path.join(repo, ".claude", "skills", "easy-worktree", "SKILL.md"), "old");
+    await write(path.join(repo, ".claude", "commands", "setup-easy-worktree.md"), "old");
+
+    await runCli(["install", "--json"], { cwd: repo, home: await home() });
+
+    assert.equal(await pathExists(path.join(repo, ".claude", "skills", "easy-worktree")), false);
+    assert.equal(await pathExists(path.join(repo, ".claude", "commands", "setup-easy-worktree.md")), false);
+    assert.equal(await pathExists(path.join(repo, ".claude", "skills", "git-grove", "SKILL.md")), true);
+  });
+});

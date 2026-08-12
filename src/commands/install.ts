@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveBin } from "../core/bin.js";
+import { BIN_NAMES, PACKAGE_NAME, resolveBin } from "../core/bin.js";
 import { gitRoot } from "../core/context.js";
 import { exists } from "../core/glob.js";
 import { readJson } from "../core/lock.js";
@@ -45,8 +45,8 @@ export async function install(opts: InstallOptions): Promise<void> {
   // starts, nothing is injected, and nothing anywhere says why. Resolve it now,
   // at write time, when we can actually check.
   //
-  // Checking the *name* is not enough, and this bit a real install: `which("grove")`
-  // returned true because Windows ships `grove.exe` (Windows Terminal) as an app
+  // Checking the *name* is not enough, and this bit a real install: `which("wt")`
+  // returned true because Windows ships `wt.exe` (Windows Terminal) as an app
   // execution alias on every user's PATH. The hook written on the strength of
   // that would have opened a terminal window at the start of every session.
   const resolved = await resolveBin();
@@ -79,6 +79,8 @@ export async function install(opts: InstallOptions): Promise<void> {
   // but only if the file already exists. Creating one uninvited is presumptuous.
   const agents = path.join(root, "AGENTS.md");
   if (await exists(agents)) written.push(await appendAgents(agents, opts.force));
+
+  written.push(...(await removeLegacy(root)));
 
   const ok = written.every((w) => w.action !== "skipped");
 
@@ -141,6 +143,43 @@ async function copyTemplate(from: string, to: string, force: boolean): Promise<W
 type HookEntry = { matcher?: string; hooks: { type: string; command: string }[] };
 
 /**
+ * Is this hook command one we wrote, under any name we have ever installed as?
+ *
+ * Exact, and only ever matching our own commands: a user's hook that merely
+ * mentions the tool must survive untouched. Anything else would make `install`
+ * a command that quietly edits your settings.
+ */
+function isOurHookCommand(command: string): boolean {
+  return new RegExp(
+    `^(${[...BIN_NAMES, `npx --no-install ${PACKAGE_NAME}`, "npx --no-install easy-worktree"].join("|")}) hook (session-start|session-end)$`,
+  ).test(command.trim());
+}
+
+/** Names this tool shipped under before. Their files compete with the current ones. */
+const LEGACY_ARTIFACTS = [
+  path.join(".claude", "skills", "easy-worktree"),
+  path.join(".claude", "commands", "setup-easy-worktree.md"),
+];
+
+/**
+ * Remove what a previous name left behind.
+ *
+ * Two skills whose descriptions both say "run stacks per worktree" compete for
+ * selection, and the loser is chosen at random — so a rename that leaves the old
+ * skill in place is worse than no rename at all.
+ */
+async function removeLegacy(root: string): Promise<Written[]> {
+  const out: Written[] = [];
+  for (const rel of LEGACY_ARTIFACTS) {
+    const file = path.join(root, rel);
+    if (!(await exists(file))) continue;
+    await fs.rm(file, { recursive: true, force: true });
+    out.push({ file, action: "updated", reason: "removed — superseded by the current name" });
+  }
+  return out;
+}
+
+/**
  * Merge our two hook entries into whatever is already in settings.json.
  *
  * Rewriting the file wholesale would silently delete a user's own hooks, so this
@@ -158,14 +197,32 @@ async function mergeHooks(file: string, bin: string): Promise<Written> {
   let changed = false;
 
   for (const [event, command] of Object.entries(wanted)) {
-    const entries = Array.isArray(hooks[event]) ? hooks[event] : [];
+    let entries = Array.isArray(hooks[event]) ? hooks[event] : [];
+
+    // Drop entries that are *ours* under an older binary name. Without this a
+    // rename leaves both installed and the session gets its context injected
+    // twice — and the stale one keeps working, so nothing ever surfaces it.
+    // The pattern is deliberately exact: anything that is not precisely one of
+    // our commands belongs to the user and is never touched.
+    const before = JSON.stringify(entries);
+    entries = entries
+      .map((entry) => ({
+        ...entry,
+        hooks: (entry.hooks ?? []).filter(
+          (h) => h.command === command || !isOurHookCommand(h.command),
+        ),
+      }))
+      .filter((entry) => entry.hooks.length > 0);
+    if (JSON.stringify(entries) !== before) changed = true;
+
     const present = entries.some((entry) =>
       (entry.hooks ?? []).some((h) => h.command === command),
     );
-    if (present) continue;
-    entries.push({ hooks: [{ type: "command", command }] });
+    if (!present) {
+      entries.push({ hooks: [{ type: "command", command }] });
+      changed = true;
+    }
     hooks[event] = entries;
-    changed = true;
   }
 
   if (!changed) return { file, action: "unchanged" };

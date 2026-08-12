@@ -148,8 +148,14 @@ name = "my-app"
 compose = []               # nothing containerised at all — that's allowed
 
 [[services]]
+name = "server"
+runtime = "host"           # not a container
+start = "the run command --project src/server"
+health = { tcp = true }
+
+[[services]]
 name = "api-grpc"
-runtime = "host"           # wt leases a port; it does not start this
+runtime = "host"           # no `start` — just reserve the port
 health = { tcp = true }
 
 # Hand the leases back through a file the app already reads.
@@ -160,20 +166,25 @@ health = { tcp = true }
 
 # …or through the environment, for anything read from there.
 [env]
-SERVER_URL = "https://localhost:${WT_PORT_API_HTTPS}"
+SERVER_URL = "https://localhost:${WT_PORT_SERVER}"
 ```
 
-Then `wt run the run command --project src/server` launches it with this worktree's
-ports, and two worktrees can run the same stack at once.
+`wt up` then renders the config, starts the process with that environment,
+records its pid and waits for it to answer — the same contract a container gets.
+`wt down` stops it and everything it spawned, `wt logs server` shows its output.
+So `wt new feat/x` ends with a **running** stack, and two worktrees run at once.
 
-A `host` service is **never** `unhealthy` and never blocks the stack from being
-`ready` — `wt` didn't start it and can't, so "not listening yet" isn't a failure
-it may report. It shows as `listening` or `not running`, and joins the scope once
-its port answers.
+A service with no `start` is a port reservation this tool observes but doesn't
+own: never `unhealthy`, never blocking the stack from `ready`, shown as
+`listening` or `not running`. Only what `wt` launches is what `wt` reports on.
 
 Rendered files are rewritten only when their content changes — those paths are
 what a hot-reloading dev server watches — and `wt doctor` checks they're
 gitignored, since committed they'd hand every worktree the same ports.
+
+**One gotcha worth knowing if you use `the run command`:** it applies the launch
+profile's `environmentVariables` *over* the ambient environment, so anything you
+inject is ignored. Pass `--no-launch-profile` and supply what the profile set.
 
 ## Gotchas this repo learned the hard way
 

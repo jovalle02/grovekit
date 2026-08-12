@@ -7,13 +7,27 @@ which is where every fix below came from.
 
 ### Added
 
-- **`runtime = "host"` services.** A service this tool does not start — an orchestrator
-  server, a `the run command`, a dev server in someone's own terminal. The proxy
-  trick needs a Docker network to hide identical ports inside and a host process
-  has none, so all `wt` can own is the port: it leases one per worktree and stays
-  out of the way. Such a service is never `unhealthy` and never blocks the stack
-  from reaching `ready` — reporting a failure for a process the developer simply
-  has not launched would make `wt up` hang and `wt run` refuse.
+- **`runtime = "host"` services.** A service Docker does not run — an orchestrator
+  server, a `the run command`, a dev server. The proxy trick needs a Docker network
+  to hide identical ports inside and a host process has none, so what `wt` owns
+  instead is the port: one lease per worktree.
+- **`start` on a host service.** `wt up` renders the config, launches the process
+  with the worktree's environment, records its pid and waits for it to answer —
+  the same contract a container gets. `wt down` stops it and everything it
+  spawned, `wt logs` shows its captured output, `wt rm` stops it before deleting
+  the directory. So `wt new` ends with a *running* stack rather than instructions
+  for starting one.
+
+  Making that work on Windows needed a supervisor process, because the two
+  necessary properties are mutually exclusive in a single spawn — measured, not
+  assumed: an attached child's output is captured but it dies when `wt` exits; a
+  detached one survives but has no console, so its output goes nowhere. `wt`
+  detaches a small `node -e` supervisor, which opens the log and runs the real
+  command as an ordinary attached child.
+
+  A service with no `start` stays a port reservation this tool observes but does
+  not own: never `unhealthy`, never blocking `ready`. Reporting a failure for a
+  process the developer simply has not launched would make `wt up` hang.
 - **`[render]`** — files written from the worktree's environment on `wt up` and
   `wt status`. The other half of the above: a leased port is useless until the
   process that needs it can discover what it got, and these stacks already read a
@@ -41,6 +55,12 @@ which is where every fix below came from.
 - **`wt new`'s rollback left the branch behind.** The obvious retry then did
   something different and worse — checking the branch out instead of creating it,
   inheriting the failed run's base, and reporting an error about the consequence.
+- **A crashed host service reported `ready`.** A TCP probe cannot tell "my
+  process is up" from "somebody else is on that port", and leases are
+  deterministic — the port a worktree gets is exactly the one an orphan of its
+  own last run is holding. The pid is now the authority and the open port only
+  corroborates, and `wt up` refuses to start onto a port already answering,
+  naming the likely orphan and how to find it.
 - **Line endings.** `git checkout` on Windows rewrote `test/fixtures/` as CRLF and
   the byte-comparison tests failed on a clean checkout of a commit whose tests
   had just passed. `.gitattributes` now pins LF, which is also the only way the

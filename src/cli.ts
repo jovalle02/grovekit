@@ -10,6 +10,7 @@ import { install } from "./commands/install.js";
 import { logs } from "./commands/logs.js";
 import { ls } from "./commands/ls.js";
 import { newWorktree } from "./commands/new.js";
+import { restart } from "./commands/restart.js";
 import { rm } from "./commands/rm.js";
 import { run } from "./commands/run.js";
 import { status } from "./commands/status.js";
@@ -28,7 +29,8 @@ ${c.dim("USAGE")}
 ${c.dim("LIFECYCLE")}
   new <branch>        Create a worktree, hydrate it, start it
   up [services…]      Start the stack and wait until healthy
-  down [services…]    Stop containers (keeps volumes, data and leases)
+  down [services…]    Stop this worktree's stack (keeps volumes, data, leases)
+  restart [services…] Stop and start again — only what you name
   rm <worktree>       Delete a worktree and everything it owns
   gc                  Reclaim containers, volumes and leases nothing owns
 
@@ -36,7 +38,7 @@ ${c.dim("USING A WORKTREE")}
   run <command…>      Run a command with this worktree's env injected
   status              Show what is running (read-only)
   logs [services…]    Show container logs
-  ls                  List every worktree and its stack status
+  ls                  List this repo's worktrees; --all spans every repo
   hydrate             Re-copy gitignored files from the main worktree
 
 ${c.dim("SETUP")}
@@ -58,6 +60,7 @@ ${c.dim("OPTIONS")}
   --keep-volumes      Keep the databases                        ${c.dim("(rm)")}
   --dry-run           Report what would happen, change nothing  ${c.dim("(gc, hydrate)")}
   --proxy             Also stop the shared proxy when idle      ${c.dim("(gc)")}
+  --all               Every worktree on the machine                ${c.dim("(ls)")}
   --env               Print the injected environment            ${c.dim("(status)")}
   --tail <n>          Lines of history, default 50              ${c.dim("(logs)")}
   --follow, -f        Stream logs                               ${c.dim("(logs)")}
@@ -72,7 +75,9 @@ ${c.dim("EXAMPLES")}
   grove run pnpm test:e2e           ${c.dim("# BASE_URL/API_URL injected, exit code passed through")}
   grove status --json               ${c.dim("# what an agent should read")}
   grove rm feat/login --delete-branch
-  grove gc --dry-run                ${c.dim("# see what has been orphaned")}
+  grove restart api              ${c.dim("# just that service, just this worktree")}
+  grove ls --all                 ${c.dim("# every worktree on the machine, and its ports")}
+  grove gc --dry-run             ${c.dim("# see what has been orphaned")}
 `;
 
 async function main(): Promise<void> {
@@ -140,6 +145,7 @@ async function main(): Promise<void> {
       heuristic: { type: "boolean", default: false },
       probe: { type: "boolean", default: false },
       global: { type: "boolean", default: false },
+      all: { type: "boolean", default: false },
     },
   });
 
@@ -180,7 +186,7 @@ async function main(): Promise<void> {
       return;
 
     case "ls":
-      await ls({ json });
+      await ls({ json, all: values.all === true });
       return;
 
     case "new":
@@ -193,6 +199,15 @@ async function main(): Promise<void> {
         noUp: values["no-up"] === true,
         build: values.build === true,
         services: values.group ?? [],
+        ...(values.timeout ? { timeoutMs: Number(values.timeout) * 1000 } : {}),
+      });
+      return;
+
+    case "restart":
+      await restart({
+        json,
+        services,
+        build: values.build === true,
         ...(values.timeout ? { timeoutMs: Number(values.timeout) * 1000 } : {}),
       });
       return;

@@ -60,7 +60,12 @@ export async function down(opts: DownOptions): Promise<void> {
   if (opts.json) {
     printJson(manifest);
   } else {
-    const what = selection.length > 0 ? selection.join(", ") : "stack";
-    console.log(`${c.green("✓")} ${what} stopped ${c.dim("(volumes and data kept — `grove up` to resume)")}`);
+    // Name the worktree, not just the action. With several stacks running, "stack
+    // stopped" reads as "everything stopped" — and the fix for that suspicion is
+    // to say whose stack it was.
+    const what = selection.length > 0 ? selection.join(", ") : "all services";
+    console.log(`${c.green("✓")} stopped ${what} in ${c.bold(ctx.slug)}`);
+    console.log(c.dim(`  volumes, data and port leases kept — \`grove up\` to resume`));
+    console.log(c.dim(`  other worktrees are untouched; \`grove ls --all\` to confirm`));
   }
 }

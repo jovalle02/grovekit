@@ -725,3 +725,54 @@ describe("grove adapt on a repo with no containers", () => {
     );
   });
 });
+
+describe("cross-worktree visibility", () => {
+  it("ls --all spans repositories, ls alone does not", async () => {
+    // The question this answers is "what else is running on this machine",
+    // which the per-repo listing structurally cannot: it enumerates from the
+    // git worktree list of the repo you happen to be standing in.
+    const wtHome = await home();
+    const repoA = await makeRepo("ls-all-a");
+    const repoB = await makeRepo("ls-all-b");
+
+    // Touch both so each registers itself.
+    await runCli(["status", "--json"], { cwd: repoA, home: wtHome });
+    await runCli(["status", "--json"], { cwd: repoB, home: wtHome });
+
+    const local = await runCli(["ls", "--json"], { cwd: repoA, home: wtHome });
+    assert.equal(local.json<{ worktrees: unknown[] }>().worktrees.length, 1);
+    assert.equal(local.json<{ scope: string }>().scope, "repo");
+
+    const all = await runCli(["ls", "--all", "--json"], { cwd: repoA, home: wtHome });
+    const payload = all.json<{ scope: string; worktrees: { path: string; repo: string | null }[] }>();
+    assert.equal(payload.scope, "machine");
+    assert.equal(payload.worktrees.length, 2, "both repositories appear");
+    assert.ok(payload.worktrees.every((w) => w.repo), "each row says which repo it belongs to");
+  });
+
+  it("reports each worktree's leased ports, so they can be told apart", async () => {
+    const wtHome = await home();
+    const repo = await makeRepo("ls-ports");
+    await runCli(["status", "--json"], { cwd: repo, home: wtHome });
+
+    const all = await runCli(["ls", "--all", "--json"], { cwd: repo, home: wtHome });
+    const first = all.json<{ worktrees: { ports: Record<string, string> }[] }>().worktrees[0];
+    assert.ok(first?.ports.db, "the leased database address is listed");
+    assert.match(first.ports.db, /^localhost:2\d{4}$/);
+  });
+});
+
+describe("session-start hook", () => {
+  it("tells the session its own addresses, not just its name", async () => {
+    // A session that guesses a port from another worktree fails in a way that
+    // looks like a broken app rather than a wrong address.
+    const wtHome = await home();
+    const repo = await makeRepo("hook-ports");
+    await runCli(["status", "--json"], { cwd: repo, home: wtHome });
+
+    const result = await runCli(["hook", "session-start"], { cwd: repo, home: wtHome });
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /Addresses for THIS worktree/);
+    assert.match(result.stdout, /db\s+localhost:2\d{4}/, "the leased port is spelled out");
+  });
+});

@@ -67,6 +67,19 @@ minimum:
 and reversible — do it freely when a stack is no longer needed. `grove up` brings it
 back in seconds.
 
+**`down` and `restart` only ever touch your own worktree.** Containers are
+addressed by the Compose project name, which is this worktree's slug, and host
+processes by this worktree's own ledger — neither can reach another worktree.
+So you never need to check with anyone before stopping your stack.
+
+To restart one thing rather than everything, name it:
+
+    grove restart api        # just that service
+    grove restart            # this worktree's whole stack
+
+Prefer `restart <service>` over `down` + `up`: it is faster and it says what you
+meant.
+
 `grove rm <slug>` is the destructive one: it deletes the worktree, its containers
 and its database. It refuses to run on a worktree with uncommitted changes, and
 on the one you are standing in. Add `--delete-branch` to drop the branch too.
@@ -76,7 +89,9 @@ on the one you are standing in. Add `--delete-branch` to drop the branch too.
 deletes things it can prove are dead — a container whose worktree it has no
 record of is reported and left alone.
 
-`grove ls --json` shows every worktree and whether its stack is running.
+`grove ls --json` shows this repo's worktrees. `grove ls --all --json` shows every
+worktree on the machine with its ports — that is the one to run when a port is
+taken, or when you are about to stop something and want to know whose it is.
 
 ## Diagnosing
 

@@ -55,10 +55,12 @@ grove doctor && grove up
 | `grove new <branch>` | branch, worktree, hydrate, start — one call |
 | `grove up [services…]` | start and block until healthy; idempotent |
 | `grove down [services…]` | stop, keeping volumes, data and leases |
+| `grove restart [services…]` | stop and start again — only what you name |
 | `grove rm <worktree>` | delete the worktree and everything it owns |
 | `grove gc` | reclaim containers, volumes and leases nothing owns |
 | `grove run <cmd…>` | run with this worktree's env injected |
-| `grove status` / `grove ls` | this worktree / every worktree |
+| `grove status` / `grove ls` | this worktree / this repo's worktrees |
+| `grove ls --all` | every worktree on the machine, with its ports |
 | `grove logs [services…]` | container logs |
 | `grove hydrate` | re-copy gitignored files from the main worktree |
 | `grove adapt <step>` | migrate a repo: evidence → decide → render → validate |

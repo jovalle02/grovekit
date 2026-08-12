@@ -45,7 +45,14 @@ export async function loadConfig(root: string): Promise<Config> {
     throw new ConfigError(`Could not parse ${file}: ${(err as Error).message}`);
   }
 
+  noUnknownKeys(
+    raw,
+    ["project", "domain", "proxy", "services", "groups", "commands", "env", "health", "hydrate", "hooks", "render"],
+    "worktree.toml",
+  );
+
   const project = obj(raw.project, "project");
+  noUnknownKeys(project, ["name", "compose"], "[project]");
   const name = str(project.name, "project.name");
   const compose = project.compose === undefined ? [] : strArray(project.compose, "project.compose");
 
@@ -142,6 +149,7 @@ function parseHydrate(value: unknown): HydrateConfig {
   const empty: HydrateConfig = { copy: [], link: [], run: [], lockfiles: [] };
   if (value === undefined) return empty;
   const table = obj(value, "hydrate");
+  noUnknownKeys(table, ["copy", "link", "run", "lockfiles"], "[hydrate]");
   return {
     copy: table.copy === undefined ? [] : strArray(table.copy, "hydrate.copy"),
     link: table.link === undefined ? [] : strArray(table.link, "hydrate.link"),
@@ -156,6 +164,7 @@ function parseHooks(value: unknown): HooksConfig {
   const defaults: HooksConfig = { onSessionStart: "status", onSessionEnd: "off" };
   if (value === undefined) return defaults;
   const table = obj(value, "hooks");
+  noUnknownKeys(table, ["on_session_start", "on_session_end"], "[hooks]");
 
   const start = table.on_session_start === undefined
     ? defaults.onSessionStart
@@ -181,6 +190,11 @@ function parseServices(value: unknown): ServiceConfig[] {
   const seen = new Set<string>();
   return value.map((entry, i) => {
     const svc = obj(entry, `services[${i}]`);
+    noUnknownKeys(
+      svc,
+      ["name", "layer", "runtime", "subdomain", "port", "host_port", "start", "health"],
+      `services[${i}]`,
+    );
     const name = str(svc.name, `services[${i}].name`);
     if (seen.has(name)) throw new ConfigError(`Duplicate service "${name}".`);
     seen.add(name);
@@ -298,6 +312,24 @@ function obj(v: unknown, where: string): Record<string, unknown> {
     throw new ConfigError(`${where} must be a table.`);
   }
   return v as Record<string, unknown>;
+}
+
+/**
+ * Reject keys this version does not understand.
+ *
+ * Ignoring them silently is the expensive kind of wrong. A `[hydrate]` written
+ * as `"path" = "copy"` rather than `copy = ["path"]` parses fine, yields empty
+ * lists, passes `wt doctor`, and gets reported as working — while nothing is
+ * copied and nothing is linked, with no message anywhere. A key we do not know
+ * is always a mistake, and this is the only place that can see it.
+ */
+function noUnknownKeys(table: Record<string, unknown>, known: string[], where: string): void {
+  const unknown = Object.keys(table).filter((k) => !known.includes(k));
+  if (unknown.length === 0) return;
+  throw new ConfigError(
+    `${where} has no key ${unknown.map((k) => `"${k}"`).join(", ")}. ` +
+      `Known keys: ${known.join(", ")}.`,
+  );
 }
 
 function str(v: unknown, where: string): string {

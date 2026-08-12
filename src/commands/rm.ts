@@ -1,5 +1,6 @@
 import path from "node:path";
 import { compose } from "../core/compose.js";
+import { execSafe } from "../core/exec.js";
 import { loadContext } from "../core/context.js";
 import { removeProject } from "../core/docker.js";
 import { deleteBranch, isDirty, mainWorktree, pruneWorktrees, removeWorktree } from "../core/git.js";
@@ -123,11 +124,22 @@ export async function rm(opts: RmOptions): Promise<void> {
   try {
     await removeWorktree(repo, target.path, opts.force);
   } catch (err) {
+    // On Windows this is nearly always core.longpaths, and git does not say so —
+    // it exits 255 with a generic message. Anyone who has hit it before will
+    // recognise it; anyone who has not will go looking in the wrong place.
+    const longPaths =
+      process.platform === "win32" &&
+      !(await execSafe("git", ["config", "--get", "core.longpaths"])).stdout.trim();
+
     fail(
       {
         ok: false,
         error: `git worktree remove failed: ${(err as Error).message}`,
-        hint: "the stack has already been torn down; re-run with --force to drop the directory",
+        hint: longPaths
+          ? "core.longpaths is not set, which is the usual cause on Windows — git cannot " +
+            "delete paths over 260 characters. `git config --global core.longpaths true`, " +
+            "then retry. The stack is already stopped either way."
+          : "the stack has already been torn down; re-run with --force to drop the directory",
       },
       opts.json,
     );

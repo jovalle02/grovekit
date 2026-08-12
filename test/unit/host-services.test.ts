@@ -246,3 +246,65 @@ runtime = "host"
     );
   });
 });
+
+describe("config typos are caught, not ignored", () => {
+  // The expensive kind of wrong: this exact [hydrate] parsed fine, produced
+  // empty lists, passed `wt doctor`, and got reported as working — while
+  // nothing was copied and nothing was linked.
+  it("rejects table syntax where a list was meant", async () => {
+    await rejects(
+      BASE +
+        '\n[[services]]\nname = "api"\nruntime = "host"\n' +
+        '\n[hydrate]\n"RiskAgent/.env" = "copy"\n"UI/node_modules" = "link"\n',
+      /\[hydrate\] has no key "RiskAgent\/\.env".*Known keys: copy, link, run, lockfiles/s,
+    );
+  });
+
+  it("rejects a misspelled service key rather than silently dropping it", async () => {
+    await rejects(
+      BASE + '\n[[services]]\nname = "api"\nruntime = "host"\nstartt = "npm start"\n',
+      /services\[0\] has no key "startt"/,
+    );
+  });
+
+  it("rejects an unknown top-level table", async () => {
+    await rejects(BASE + '\n[[services]]\nname = "api"\n\n[hydration]\ncopy = []\n', /has no key "hydration"/);
+  });
+
+  it("rejects a misspelled hook key", async () => {
+    await rejects(
+      BASE + '\n[[services]]\nname = "api"\n\n[hooks]\non_session_ended = "down"\n',
+      /\[hooks\] has no key "on_session_ended"/,
+    );
+  });
+
+  it("still accepts every documented key", async () => {
+    const config = await load(`
+[project]
+name = "full"
+compose = []
+
+[[services]]
+name = "api"
+layer = "backend"
+runtime = "host"
+start = "npm start"
+health = { tcp = true }
+
+[hydrate]
+copy = [".env"]
+link = ["node_modules"]
+run = ["npm ci"]
+lockfiles = ["package-lock.json"]
+
+[hooks]
+on_session_start = "status"
+on_session_end = "off"
+
+[render]
+"a.json" = "{}"
+`);
+    assert.equal(config.services[0]?.start, "npm start");
+    assert.deepEqual(config.hydrate.copy, [".env"]);
+  });
+});

@@ -12,7 +12,13 @@ import { buildManifest, writeManifest } from "../core/manifest.js";
 import { c, fail, printJson, printManifest } from "../core/output.js";
 import { leasePort } from "../core/ports.js";
 import { ensureProxy } from "../core/proxy.js";
-import { isAlive, readProcesses, reapProcesses, startProcess } from "../core/processes.js";
+import {
+  isAlive,
+  readProcesses,
+  reapProcesses,
+  startProcess,
+  stopProcess,
+} from "../core/processes.js";
 import { renderFiles } from "../core/render.js";
 import { envKey } from "../core/naming.js";
 import type { Manifest } from "../types.js";
@@ -74,8 +80,8 @@ export async function up(opts: UpOptions): Promise<Manifest> {
 
   // Render before launching: a host process reads its generated config at
   // startup, so writing it afterwards would hand it the previous run's ports.
-  await applyRender(ctx, runtime, !opts.json && !opts.quiet);
-  await startHostServices(ctx, runtime, selection, opts);
+  const changed = await applyRender(ctx, runtime, !opts.json && !opts.quiet);
+  await startHostServices(ctx, runtime, selection, opts, changed.length > 0);
 
   if (!opts.json && !opts.quiet) {
     const pending = runtime.filter((s) => s.status === "starting").map((s) => s.config.name);
@@ -143,6 +149,8 @@ async function startHostServices(
   runtime: RuntimeService[],
   selection: string[],
   opts: UpOptions,
+  /** A rendered file changed, so anything already running is reading stale config. */
+  configChanged: boolean,
 ): Promise<void> {
   const wanted = new Set(opts.services.length > 0 ? selection : ctx.config.services.map((s) => s.name));
   const startable = runtime.filter(
@@ -158,8 +166,20 @@ async function startHostServices(
     const name = svc.config.name;
     const existing = running[name];
     if (existing && isAlive(existing.pid)) {
-      svc.status = "starting";
-      continue;
+      // Already running and its config is unchanged — leave it be.
+      if (!configChanged) {
+        svc.status = "starting";
+        continue;
+      }
+
+      // Its generated config just changed underneath it, and it read that file
+      // at startup. `wt up` is otherwise a no-op on a live stack, which meant
+      // editing worktree.toml and re-running it silently kept serving the old
+      // ports — the change appeared to have been applied and had not been.
+      if (!opts.json && !opts.quiet) {
+        console.log(c.dim(`restarting ${name} — its generated config changed`));
+      }
+      await stopProcess(ctx.root, name);
     }
 
     // Someone is already on the port we lease for this service, and it is not a
@@ -223,7 +243,7 @@ export async function applyRender(
     }
   }
 
-  return results.filter((r) => r.status !== "failed").map((r) => r.file);
+  return results.filter((r) => r.status === "written").map((r) => r.file);
 }
 
 /** Only services declaring `host_port` consume a lease. */

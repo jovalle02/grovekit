@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { after, describe, it } from "node:test";
-import { cleanup, git, makeRepo, readJsonFile, runCli, tmpDir, write } from "../helpers.js";
+import { cleanup, git, makeRepo, read, readJsonFile, runCli, tmpDir, write } from "../helpers.js";
 import { isAlive } from "../../src/core/processes.js";
 import type { Manifest } from "../../src/types.js";
 
@@ -183,6 +183,54 @@ describe("host processes", () => {
       assert.equal(result.json<Manifest>().services[0]?.status, "unhealthy");
     } finally {
       squatter.close();
+    }
+  });
+
+  it("restarts a running process when its generated config changed", async () => {
+    // `wt up` is a no-op on a live stack, which meant editing worktree.toml and
+    // re-running it silently kept serving the old ports: the change looked
+    // applied and was not. Observed on a real repo.
+    const { repo, home } = await hostRepo("host-reconfig");
+    try {
+      await runCli(["up", "--json"], { cwd: repo, home, timeoutMs: 120_000 });
+      const before = (await readJsonFile<Record<string, { pid: number }>>(
+        path.join(repo, ".wt", "processes.json"),
+      )).api?.pid;
+
+      // Change what the template renders, so the file on disk differs.
+      const toml = await read(path.join(repo, "worktree.toml"));
+      await write(
+        path.join(repo, "worktree.toml"),
+        toml.replace('{ "port": ${WT_PORT_API} }', '{ "port": ${WT_PORT_API}, "extra": 1 }'),
+      );
+
+      const again = await runCli(["up", "--json"], { cwd: repo, home, timeoutMs: 120_000 });
+      assert.equal(again.json<Manifest>().status, "ready");
+
+      const after = (await readJsonFile<Record<string, { pid: number }>>(
+        path.join(repo, ".wt", "processes.json"),
+      )).api?.pid;
+      assert.notEqual(after, before, "it should have been restarted to read the new config");
+    } finally {
+      await runCli(["down", "--json"], { cwd: repo, home, timeoutMs: 60_000 });
+    }
+  });
+
+  it("does not restart when the config is unchanged", async () => {
+    const { repo, home } = await hostRepo("host-noreconfig");
+    try {
+      await runCli(["up", "--json"], { cwd: repo, home, timeoutMs: 120_000 });
+      const before = (await readJsonFile<Record<string, { pid: number }>>(
+        path.join(repo, ".wt", "processes.json"),
+      )).api?.pid;
+
+      await runCli(["up", "--json"], { cwd: repo, home, timeoutMs: 120_000 });
+      const after = (await readJsonFile<Record<string, { pid: number }>>(
+        path.join(repo, ".wt", "processes.json"),
+      )).api?.pid;
+      assert.equal(after, before);
+    } finally {
+      await runCli(["down", "--json"], { cwd: repo, home, timeoutMs: 60_000 });
     }
   });
 });

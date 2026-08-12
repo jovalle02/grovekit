@@ -266,7 +266,23 @@ async function probe(ctx: Context, svc: RuntimeService): Promise<boolean> {
   }
 }
 
+/**
+ * Is anything listening on this port, on either loopback address?
+ *
+ * Both are required, and probing only IPv4 was a real false negative: a Vite dev
+ * server binds `::1` alone, so `wt status` reported "not running" for a server
+ * that was happily serving — and the workaround was to remove its health check,
+ * which is the opposite of what a health check is for. Node resolves `localhost`
+ * to `::1` first on Windows, so anything started through a URL rather than an
+ * explicit bind address is likely to land there.
+ */
 export function tcpReachable(port: number): Promise<boolean> {
+  return Promise.all([connectTo(port, "127.0.0.1"), connectTo(port, "::1")]).then((r) =>
+    r.some(Boolean),
+  );
+}
+
+function connectTo(port: number, host: string): Promise<boolean> {
   return new Promise((resolve) => {
     const socket = new net.Socket();
     const done = (ok: boolean) => {
@@ -277,6 +293,6 @@ export function tcpReachable(port: number): Promise<boolean> {
     socket.once("connect", () => done(true));
     socket.once("timeout", () => done(false));
     socket.once("error", () => done(false));
-    socket.connect(port, "127.0.0.1");
+    socket.connect(port, host);
   });
 }

@@ -121,3 +121,46 @@ describe("isOurBinary", () => {
     assert.equal(await isOurBinary(path.join(await tmpDir("bin-gone"), "nope")), false);
   });
 });
+
+describe("tcpReachable", () => {
+  // A Vite dev server binds ::1 only. Probing IPv4 alone reported "not running"
+  // for a server that was serving, and the workaround was to delete its health
+  // check — the opposite of what a health check is for.
+  it("finds a listener bound to IPv6 loopback only", async () => {
+    const { tcpReachable } = await import("../../src/core/health.js");
+    const net = await import("node:net");
+
+    const server = net.createServer();
+    const port = await new Promise<number>((resolve) => {
+      server.listen(0, "::1", () => {
+        const address = server.address();
+        resolve(typeof address === "object" && address ? address.port : 0);
+      });
+    });
+
+    try {
+      assert.equal(await tcpReachable(port), true);
+    } finally {
+      server.close();
+    }
+  });
+
+  it("finds a listener bound to IPv4 loopback only", async () => {
+    const { tcpReachable } = await import("../../src/core/health.js");
+    const net = await import("node:net");
+
+    const server = net.createServer();
+    const port = await new Promise<number>((resolve) => {
+      server.listen(0, "127.0.0.1", () => {
+        const address = server.address();
+        resolve(typeof address === "object" && address ? address.port : 0);
+      });
+    });
+
+    try {
+      assert.equal(await tcpReachable(port), true);
+    } finally {
+      server.close();
+    }
+  });
+});

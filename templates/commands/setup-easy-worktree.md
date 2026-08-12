@@ -191,6 +191,30 @@ Rules that matter:
 - `[hydrate]` for what git will not bring: `link` a `node_modules`-shaped
   directory, `copy` a `.env`, `run` the install command.
 
+### Traps that have already cost a session
+
+**A dev server's proxy target is a separate port from the dev server itself.**
+A frontend usually proxies `/api` to the backend, and reads that target from its
+own variable. Move the backend's port without moving the proxy target and the
+UI loads but every call through it fails — which looks like a broken app, not a
+config gap. Check every dev-server config for where it points, not just what it
+binds.
+
+**A build-tool variable can hit more than one project.** MSBuild reads
+environment variables as properties, so a generic name like `SpaProxyServerUrl`
+reaches every project at once and gives them all the same value. Where two
+services read the same variable name, introduce a distinct one per service
+rather than setting the shared one.
+
+**A service may ignore the port its orchestrator assigns it.** Anything calling
+`listen()` / `UseUrls()` / `ConfigureKestrel()` with its own config value binds
+that value regardless of what it was handed. Those need the leased port routed
+to *their* key, via `[env]`.
+
+**Not everything you reserve will be honoured.** If a variable turns out to be
+ignored, say so in the config rather than deleting the entry — a reservation
+costs nothing, and the next person needs to know it was tried.
+
 ## C. Verify, and expect the environment to fight you
 
 ```
@@ -210,8 +234,24 @@ the launcher is overriding the environment. Many run commands apply their own
 profile's variables *over* the ambient ones. Look for a flag that skips the
 profile, and then supply whatever that profile was setting via `[env]`.
 
-Finally, prove the point: `wt new feat/scratch`, and confirm both worktrees run
-at once on different ports. Then `wt rm feat-scratch`.
+**After changing worktree.toml, `wt down` before `wt up`.** `wt up` restarts a
+host process whose *rendered* config changed, but a change that only affects
+`[env]` is invisible to it — and a process started earlier is still holding the
+old values.
+
+Then prove the point:
+
+```
+git add worktree.toml .gitignore && git commit    # required: see below
+wt new feat/scratch
+```
+
+**Commit worktree.toml first.** A new worktree gets the branch's files, so an
+uncommitted config means the worktree arrives without one and `wt new` rolls
+back. If you branched from somewhere that lacks it, `--from <your-branch>`.
+
+Confirm both worktrees are up on disjoint ports, and that they *serve* rather
+than merely listen — request a real endpoint on each. Then `wt rm feat-scratch`.
 
 ## D. Report
 

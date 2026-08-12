@@ -134,11 +134,22 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
     }
   } catch (err) {
     await rollback(here, dest, (await readState(dest))?.slug ?? null, reuseBranch ? null : branch);
+
+    // The overwhelmingly common cause, and one the generic message sends people
+    // hunting in the wrong place: worktree.toml exists where they are standing
+    // but is not committed on the base they branched from, so the new worktree
+    // genuinely does not have it. Say that, rather than "run `wt adapt`".
+    const uncommittedConfig =
+      /No worktree\.toml found/.test((err as Error).message) && (await exists(path.join(here, "worktree.toml")));
+
     fail(
       {
         ok: false,
         error: `worktree created but setup failed, so it was removed again: ${(err as Error).message}`,
-        hint: "fix the cause and re-run, or pass --no-hydrate --no-up to create it bare",
+        hint: uncommittedConfig
+          ? `worktree.toml exists here but is not on \`${from ?? branch}\`, so the new worktree did ` +
+            `not get it. Commit it (and merge it to the branch you branch from), or use --from <ref>.`
+          : "fix the cause and re-run, or pass --no-hydrate --no-up to create it bare",
       },
       opts.json,
     );

@@ -59,7 +59,10 @@ For every service decide:
   file published a port, the author wanted to reach that thing - keep it
   reachable, on a leased port. If they did not publish it, leave it internal.
 - **`health`** - a path for `http`, or an exec command such as
-  `["pg_isready", "-U", "app"]`.
+  `["pg_isready", "-h", "127.0.0.1", "-U", "app"]`. The `-h` is not optional:
+  without it the check talks to the unix socket, which the bootstrap server
+  Postgres runs during `initdb` also answers on - so the stack reports ready and
+  the next command finds the connection closed under it.
 
 Every entry needs `evidence` (what in the compose file told you) and
 `confidence`. Anything you are unsure about: set `confidence: "low"` and say why

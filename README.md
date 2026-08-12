@@ -282,7 +282,7 @@ health = "/healthz"
 name = "db"
 layer = "data"
 host_port = true           # leased, so you can open it in a GUI client
-health = { exec = ["pg_isready", "-U", "app"] }
+health = { exec = ["pg_isready", "-h", "127.0.0.1", "-U", "app"] }
 
 [groups]
 backend = ["api", "db"]    # grove up --group backend

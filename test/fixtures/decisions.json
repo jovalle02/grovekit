@@ -24,7 +24,7 @@
       "subdomain": null,
       "containerPort": 5432,
       "hostPort": true,
-      "health": { "exec": ["pg_isready", "-U", "app"] },
+      "health": { "exec": ["pg_isready", "-h", "127.0.0.1", "-U", "app"] },
       "envRewrites": {},
       "database": { "scheme": "postgres", "user": "app", "password": "app", "name": "app" },
       "evidence": "image postgres:16-alpine matches a known data service",

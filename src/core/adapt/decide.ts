@@ -38,7 +38,7 @@ export interface Decisions {
 const BROWSER_PREFIXES = ["NEXT_PUBLIC_", "VITE_", "REACT_APP_", "PUBLIC_", "NUXT_PUBLIC_", "GATSBY_", "EXPO_PUBLIC_"];
 
 const HEALTH_EXEC: { match: RegExp; command: string[] }[] = [
-  { match: /postgres/, command: ["pg_isready"] },
+  { match: /postgres/, command: ["pg_isready", "-h", "127.0.0.1"] },
   { match: /mysql|mariadb/, command: ["mysqladmin", "ping", "-h", "127.0.0.1"] },
   { match: /redis|valkey/, command: ["redis-cli", "ping"] },
   { match: /mongo/, command: ["mongosh", "--quiet", "--eval", "db.runCommand('ping')"] },

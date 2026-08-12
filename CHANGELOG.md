@@ -2,6 +2,19 @@
 
 ## 0.5.0
 
+### Fixed
+
+- **The generated Postgres healthcheck now asks over TCP.** `pg_isready` with no
+  `-h` talks to the unix socket, and so does the temporary server the official
+  image runs while `initdb` is still going. The check passed against that
+  bootstrap server, `grove up` reported the stack ready, and the next command got
+  `server closed the connection unexpectedly` as the real server took its place.
+
+  Every repo migrated by `grove adapt` had this. It is a race, so it presented as
+  an occasional inexplicable failure right after startup rather than as a broken
+  healthcheck. The bootstrap server sets `listen_addresses=''`, so asking over
+  TCP is the question it cannot answer early. MySQL already asked this way.
+
 ### Added
 
 - **`grove new --seed-from <worktree>`** copies database contents into the new

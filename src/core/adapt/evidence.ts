@@ -69,7 +69,7 @@ const OVERLAY_NAME = "docker-compose.worktree.yml";
  * no boot, and it must never be allowed to overrule an observation.
  */
 const KNOWN_IMAGES: { match: RegExp; kind: ServiceKind; layer: Layer; port: number; health?: string[] }[] = [
-  { match: /^(docker\.io\/)?(library\/)?postgres/, kind: "tcp", layer: "data", port: 5432, health: ["pg_isready"] },
+  { match: /^(docker\.io\/)?(library\/)?postgres/, kind: "tcp", layer: "data", port: 5432, health: ["pg_isready", "-h", "127.0.0.1"] },
   { match: /^(docker\.io\/)?(library\/)?(mysql|mariadb)/, kind: "tcp", layer: "data", port: 3306, health: ["mysqladmin", "ping", "-h", "127.0.0.1"] },
   { match: /^(docker\.io\/)?(library\/)?mongo/, kind: "tcp", layer: "data", port: 27017, health: ["mongosh", "--quiet", "--eval", "db.runCommand('ping')"] },
   { match: /^(docker\.io\/)?(library\/)?(redis|valkey)/, kind: "tcp", layer: "data", port: 6379, health: ["redis-cli", "ping"] },

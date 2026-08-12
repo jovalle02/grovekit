@@ -115,7 +115,19 @@ describe("decideHeuristically", () => {
     // that thing. Keep it reachable - on a leased port, not a fixed one.
     assert.equal(byName("db")?.hostPort, true);
     assert.equal(byName("db")?.subdomain, null);
-    assert.deepEqual(byName("db")?.health, { exec: ["pg_isready", "-U", "app"] });
+    assert.deepEqual(byName("db")?.health, { exec: ["pg_isready", "-h", "127.0.0.1", "-U", "app"] });
+  });
+
+  it("checks Postgres over TCP, not over the unix socket", () => {
+    // `pg_isready` with no -h talks to the unix socket, and so does the temporary
+    // server the official image runs during initdb. The check passed against that
+    // bootstrap server, `grove up` reported ready, and the next command got
+    // "server closed the connection unexpectedly" as the real server took over.
+    // The bootstrap server sets listen_addresses='' - so asking over TCP is the
+    // question that cannot be answered early.
+    const health = byName("db")?.health as { exec: string[] };
+    assert.ok(health.exec.includes("-h"), "the check must name a host");
+    assert.equal(health.exec[health.exec.indexOf("-h") + 1], "127.0.0.1");
   });
 
   it("reuses the credentials the compose file already declares", () => {

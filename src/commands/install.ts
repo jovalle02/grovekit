@@ -29,7 +29,7 @@ function templatesDir(): string {
 }
 
 /**
- * Wire the tool into an agent's environment. Mechanical on purpose — no model
+ * Wire the tool into an agent's environment. Mechanical on purpose - no model
  * involved and no judgment applied.
  *
  * What it deliberately does NOT do is write the compose overlay. Migrating a
@@ -41,7 +41,7 @@ export async function install(opts: InstallOptions): Promise<void> {
   const root = await gitRoot();
   const written: Written[] = [];
 
-  // A hook that shells out to a binary not on PATH fails silently — the session
+  // A hook that shells out to a binary not on PATH fails silently - the session
   // starts, nothing is injected, and nothing anywhere says why. Resolve it now,
   // at write time, when we can actually check.
   //
@@ -75,7 +75,7 @@ export async function install(opts: InstallOptions): Promise<void> {
 
   written.push(await appendGitignore(path.join(root, ".gitignore")));
 
-  // Codex reads AGENTS.md rather than skills, so mirror the essentials there —
+  // Codex reads AGENTS.md rather than skills, so mirror the essentials there  - 
   // but only if the file already exists. Creating one uninvited is presumptuous.
   const agents = path.join(root, "AGENTS.md");
   if (await exists(agents)) written.push(await appendAgents(agents, opts.force));
@@ -98,7 +98,7 @@ export async function install(opts: InstallOptions): Promise<void> {
 
   for (const entry of written) {
     const mark =
-      entry.action === "skipped" ? c.yellow("·") : entry.action === "unchanged" ? c.dim("·") : c.green("✓");
+      entry.action === "skipped" ? c.yellow("-") : entry.action === "unchanged" ? c.dim("-") : c.green("ok");
     const rel = path.relative(root, entry.file) || entry.file;
     console.log(`${mark} ${entry.action.padEnd(9)} ${rel}${entry.reason ? c.dim(` (${entry.reason})`) : ""}`);
   }
@@ -106,7 +106,7 @@ export async function install(opts: InstallOptions): Promise<void> {
   console.log(`hooks call ${c.bold(bin)}`);
   if (resolved.shadowedBy) {
     console.log(
-      c.yellow(`note: ${resolved.shadowedBy} is on PATH but is not this tool — that name is taken`),
+      c.yellow(`note: ${resolved.shadowedBy} is on PATH but is not this tool - that name is taken`),
     );
   }
   if (!resolved.verified) {
@@ -132,7 +132,7 @@ async function copyTemplate(from: string, to: string, force: boolean): Promise<W
   const current = await fs.readFile(to, "utf8").catch(() => null);
   if (current === content) return { file: to, action: "unchanged" };
   if (current !== null && !force) {
-    return { file: to, action: "skipped", reason: "already exists — pass --force to overwrite" };
+    return { file: to, action: "skipped", reason: "already exists - pass --force to overwrite" };
   }
 
   await fs.mkdir(path.dirname(to), { recursive: true });
@@ -150,7 +150,7 @@ type HookEntry = { matcher?: string; hooks: { type: string; command: string }[] 
  * a command that quietly edits your settings.
  */
 function isOurHookCommand(command: string): boolean {
-  // Every name this tool has ever installed as, not just the current one — the
+  // Every name this tool has ever installed as, not just the current one - the
   // whole point is to remove a hook written under an older name.
   const names = [
     ...BIN_NAMES,
@@ -165,7 +165,7 @@ function isOurHookCommand(command: string): boolean {
 const LEGACY_BIN_NAMES = ["git-grove", "ewt", "wt"];
 const LEGACY_PACKAGE_NAMES = ["easy-worktree", "git-grove"];
 
-/** What this version writes. Never a deletion candidate — see `removeLegacy`. */
+/** What this version writes. Never a deletion candidate - see `removeLegacy`. */
 const CURRENT_ARTIFACTS = [
   path.join(".claude", "skills", "grove"),
   path.join(".claude", "commands", "setup-grove.md"),
@@ -183,7 +183,7 @@ const LEGACY_ARTIFACTS = [
  * Remove what a previous name left behind.
  *
  * Two skills whose descriptions both say "run stacks per worktree" compete for
- * selection, and the loser is chosen at random — so a rename that leaves the old
+ * selection, and the loser is chosen at random - so a rename that leaves the old
  * skill in place is worse than no rename at all.
  *
  * The guard is not paranoia: a careless rename put the *current* command file in
@@ -199,7 +199,7 @@ async function removeLegacy(root: string): Promise<Written[]> {
     const file = path.join(root, rel);
     if (!(await exists(file))) continue;
     await fs.rm(file, { recursive: true, force: true });
-    out.push({ file, action: "updated", reason: "removed — superseded by the current name" });
+    out.push({ file, action: "updated", reason: "removed - superseded by the current name" });
   }
   return out;
 }
@@ -226,7 +226,7 @@ async function mergeHooks(file: string, bin: string): Promise<Written> {
 
     // Drop entries that are *ours* under an older binary name. Without this a
     // rename leaves both installed and the session gets its context injected
-    // twice — and the stale one keeps working, so nothing ever surfaces it.
+    // twice - and the stale one keeps working, so nothing ever surfaces it.
     // The pattern is deliberately exact: anything that is not precisely one of
     // our commands belongs to the user and is never touched.
     const before = JSON.stringify(entries);
@@ -292,7 +292,7 @@ with its own URLs and its own database.
 - \`grove up\` starts and blocks until healthy. \`grove run <cmd>\` injects \`BASE_URL\`,
   \`API_URL\` and \`DATABASE_URL\` and passes the exit code through.
 - \`status: ready\` means every service in \`scope\` is ready. A service marked
-  \`not-started\` was deliberately left out of scope — nothing is wrong with it.
+  \`not-started\` was deliberately left out of scope - nothing is wrong with it.
 - Never hardcode a URL or a port; read them from the manifest or the environment.
 `;
 

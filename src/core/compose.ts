@@ -115,7 +115,7 @@ export async function composeLogs(ctx: Context, service: string, tail: number): 
     .slice(-tail);
 }
 
-/** `docker compose config` — resolves and validates the merged file set. */
+/** `docker compose config` - resolves and validates the merged file set. */
 export async function composeConfig(ctx: Context): Promise<ExecResult> {
   return compose(ctx, ["config", "--format", "json"]);
 }

@@ -38,11 +38,11 @@ services:
       - wt.managed=true
 
   db:
-    # Not HTTP, so the proxy can't front it — it keeps a real host port, leased
+    # Not HTTP, so the proxy can't front it - it keeps a real host port, leased
     # per worktree instead of hardcoded to 5432.
     #
     # !override, NOT !reset. `!reset` erases the key and ignores any value you
-    # give it, so `ports: !reset ["..."]` silently publishes nothing — and then
+    # give it, so `ports: !reset ["..."]` silently publishes nothing - and then
     # WT_HOST_DB advertises an address with no listener behind it.
     ports: !override
       - "${WT_PORT_DB}:5432"

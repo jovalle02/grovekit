@@ -41,14 +41,14 @@ function visibleLength(s: string): number {
 }
 
 export function printManifest(m: Manifest): void {
-  const mark = m.status === "ready" ? c.green("✓") : m.status === "unhealthy" ? c.red("✗") : c.yellow("…");
+  const mark = m.status === "ready" ? c.green("ok") : m.status === "unhealthy" ? c.red("x") : c.yellow("...");
   console.log(`${mark} ${c.bold(m.worktree)} ${c.dim(`(branch: ${m.branch})`)}`);
   console.log();
 
   const rows = m.services.map((s) => [
     s.layer,
     s.name,
-    s.url ?? s.hostAddress ?? c.dim("—"),
+    s.url ?? s.hostAddress ?? c.dim(" - "),
     // A host process is not started by this tool, so `not-started` there means
     // "you have not launched it", not "something is wrong". Say which it is
     // rather than leaving the reader to infer it from the status word.
@@ -65,7 +65,7 @@ export function printManifest(m: Manifest): void {
   for (const svc of failed) {
     console.log(c.red(`  ${svc.name} did not become healthy:`));
     for (const l of svc.lastLogs?.slice(-15) ?? []) console.log(c.dim(`    ${l}`));
-    console.log(c.dim(`    → full logs: ${svc.logs}`));
+    console.log(c.dim(`    -> full logs: ${svc.logs}`));
     console.log();
   }
 

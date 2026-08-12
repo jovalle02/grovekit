@@ -35,8 +35,8 @@ interface GcAction {
  *
  * The safety rule is what makes this usable, and it is stricter than it looks:
  * **gc deletes only what it can prove is dead, never what it merely fails to
- * recognise.** A slug is dead when we hold a record of it — a registry entry or
- * a port lease — whose worktree is gone. A slug we have never heard of is left
+ * recognise.** A slug is dead when we hold a record of it - a registry entry or
+ * a port lease - whose worktree is gone. A slug we have never heard of is left
  * strictly alone and only reported, because the alternative is that a deleted
  * registry file turns `grove gc` into "destroy every stack on this machine".
  */
@@ -73,7 +73,7 @@ export async function gc(opts: GcOptions): Promise<void> {
     }
   }
 
-  // Slugs we have a record of whose worktree is gone. This — and only this — is
+  // Slugs we have a record of whose worktree is gone. This - and only this - is
   // what authorises deleting containers and volumes.
   const dead = new Set<string>();
 
@@ -104,7 +104,7 @@ export async function gc(opts: GcOptions): Promise<void> {
 
     for (const [project, count] of [...counts].sort()) {
       if (!dead.has(project)) {
-        // Belongs to a repo this machine has not registered — most likely a
+        // Belongs to a repo this machine has not registered - most likely a
         // worktree of a project we simply have not been run in yet.
         act("unknown", project, `${count} containers left alone (no record of this worktree)`);
         continue;
@@ -148,7 +148,7 @@ export async function gc(opts: GcOptions): Promise<void> {
     const mark = action.kind === "unknown" ? c.dim("skip ") : verb;
     console.log(`${mark} ${action.kind.padEnd(10)} ${action.target}  ${c.dim(action.detail)}`);
   }
-  if (opts.dryRun) console.log(c.dim("\ndry run — re-run without --dry-run to apply"));
+  if (opts.dryRun) console.log(c.dim("\ndry run - re-run without --dry-run to apply"));
 }
 
 async function sweepLeases(live: Set<string>, dryRun: boolean): Promise<[string, number][]> {

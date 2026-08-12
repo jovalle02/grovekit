@@ -37,7 +37,7 @@ export async function down(opts: DownOptions): Promise<void> {
     if (svc.runtime !== "host") continue;
     if (wanted && !wanted.has(svc.name)) continue;
     if (await stopProcess(ctx.root, svc.name) && !opts.json) {
-      console.log(`${c.green("✓")} stopped ${svc.name}`);
+      console.log(`${c.green("ok")} stopped ${svc.name}`);
     }
   }
 
@@ -61,11 +61,11 @@ export async function down(opts: DownOptions): Promise<void> {
     printJson(manifest);
   } else {
     // Name the worktree, not just the action. With several stacks running, "stack
-    // stopped" reads as "everything stopped" — and the fix for that suspicion is
+    // stopped" reads as "everything stopped" - and the fix for that suspicion is
     // to say whose stack it was.
     const what = selection.length > 0 ? selection.join(", ") : "all services";
-    console.log(`${c.green("✓")} stopped ${what} in ${c.bold(ctx.slug)}`);
-    console.log(c.dim(`  volumes, data and port leases kept — \`grove up\` to resume`));
+    console.log(`${c.green("ok")} stopped ${what} in ${c.bold(ctx.slug)}`);
+    console.log(c.dim(`  volumes, data and port leases kept - \`grove up\` to resume`));
     console.log(c.dim(`  other worktrees are untouched; \`grove ls --all\` to confirm`));
   }
 }

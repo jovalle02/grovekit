@@ -117,7 +117,7 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
         });
 
         // The mirror-image failure: a service we advertise a host address for that
-        // in fact publishes nothing. Silent otherwise — WT_HOST_<X> would point at
+        // in fact publishes nothing. Silent otherwise - WT_HOST_<X> would point at
         // a port with no listener. Almost always `!reset [value]` where the value
         // was ignored; `!reset` erases, only `!override` replaces.
         const notPublished = ctx.config.services
@@ -134,7 +134,7 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
           hint:
             notPublished.length === 0
               ? undefined
-              : "`ports: !reset [value]` erases the value — use `!override` to replace it",
+              : "`ports: !reset [value]` erases the value - use `!override` to replace it",
         });
       } catch {
         /* merged output wasn't JSON; the merge check above already reported */
@@ -142,7 +142,7 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
     }
 
     // A generated file that is committed hands one worktree's leased ports to
-    // every other worktree the next time someone checks the branch out — the
+    // every other worktree the next time someone checks the branch out - the
     // same failure as a committed `.wt/state.json`, and just as quiet.
     const rendered = Object.keys(ctx.config.render);
     if (rendered.length > 0) {
@@ -157,7 +157,7 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
         hint:
           tracked.length === 0
             ? undefined
-            : "add them to .gitignore — committed, they hand every worktree the same ports",
+            : "add them to .gitignore - committed, they hand every worktree the same ports",
       });
     }
 
@@ -181,7 +181,7 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
           name: "wildcard DNS",
           ok: false,
           detail: `${host} does not resolve`,
-          hint: "*.localhost does not resolve via the Windows resolver — use localtest.me",
+          hint: "*.localhost does not resolve via the Windows resolver - use localtest.me",
         });
       }
 
@@ -191,7 +191,7 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
       } else {
         // Ask Docker, not a socket. A probe is not authoritative in either
         // direction, so when the configured port is refused we go find one that
-        // Docker has actually accepted and name it — no guessing for the user.
+        // Docker has actually accepted and name it - no guessing for the user.
         const usable = await dockerCanPublish(proxy.port, ctx.config.proxy.image);
         const suggestion = usable
           ? null
@@ -206,13 +206,13 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
           hint: usable
             ? undefined
             : suggestion
-              ? `set [proxy] port = ${suggestion} in worktree.toml — verified bindable just now`
+              ? `set [proxy] port = ${suggestion} in worktree.toml - verified bindable just now`
               : `no candidate port was bindable; is the Docker daemon healthy?`,
         });
       }
 
       // A Traefik that cannot read the Docker socket still starts and still answers
-      // — with 404 for everything. Without this check that looks like a routing bug.
+      // - with 404 for everything. Without this check that looks like a routing bug.
       if (proxy.running) {
         const broken = proxyProviderBroken(await proxyLogs());
         checks.push({
@@ -244,7 +244,7 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
     printJson({ ok, checks });
   } else {
     for (const ch of checks) {
-      const mark = ch.ok ? c.green("✓") : c.red("✗");
+      const mark = ch.ok ? c.green("ok") : c.red("x");
       console.log(`${mark} ${ch.name.padEnd(24)} ${c.dim(ch.detail)}`);
       if (!ch.ok && ch.hint) console.log(`  ${c.dim("hint: " + ch.hint)}`);
     }

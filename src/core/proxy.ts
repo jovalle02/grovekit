@@ -9,7 +9,7 @@ export const PROXY_PROJECT = "easy-worktree-proxy";
 export class PortUnavailableError extends Error {
   constructor(
     readonly port: number,
-    /** True when a plain socket probe said the port was free — Windows does this. */
+    /** True when a plain socket probe said the port was free - Windows does this. */
     readonly looksFree: boolean,
   ) {
     super(
@@ -18,7 +18,7 @@ export class PortUnavailableError extends Error {
           ? ` A socket probe says it is free, so this is a Windows-level reservation ` +
             `(Hyper-V/WinNAT) that only affects Docker.`
           : ` Something else is listening on it.`) +
-        ` Set [proxy] port = <n> in worktree.toml — URLs will then include the port.`,
+        ` Set [proxy] port = <n> in worktree.toml - URLs will then include the port.`,
     );
     this.name = "PortUnavailableError";
   }

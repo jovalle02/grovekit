@@ -89,7 +89,7 @@ export function buildManifest(
   };
 }
 
-/** Always written, including on failure — an agent needs to know *which* layer broke. */
+/** Always written, including on failure - an agent needs to know *which* layer broke. */
 export async function writeManifest(ctx: Context, manifest: Manifest): Promise<Manifest> {
   await writeJson(manifestFile(ctx.root), manifest);
   return manifest;

@@ -10,7 +10,7 @@ export const FIXTURE = path.join(REPO_ROOT, "examples", "sample-app");
 const CLI = path.join(REPO_ROOT, "src", "cli.ts");
 
 /**
- * Absolute, because the CLI is spawned with its cwd inside a temp worktree —
+ * Absolute, because the CLI is spawned with its cwd inside a temp worktree  - 
  * a bare `--import tsx` would be resolved from *there* and not found.
  */
 const TSX = import.meta.resolve("tsx");
@@ -22,7 +22,7 @@ const created: string[] = [];
  * A throwaway directory, removed when the suite exits.
  *
  * Under the OS temp dir rather than the repo so a crashed run never leaves a
- * half-built git worktree inside the project — which git then refuses to prune.
+ * half-built git worktree inside the project - which git then refuses to prune.
  */
 export async function tmpDir(label = "grove"): Promise<string> {
   const dir = path.join(
@@ -80,7 +80,7 @@ export interface RunOptions {
 }
 
 /**
- * Run the CLI the way a user does — a real process, real argv, real exit code.
+ * Run the CLI the way a user does - a real process, real argv, real exit code.
  *
  * Every bug this project has actually shipped lived in the seam between modules
  * (argument re-quoting, exit-code passthrough, a manifest written on a path that
@@ -148,7 +148,7 @@ export async function git(cwd: string, args: string[]): Promise<string> {
  *
  * `branch` is worth overriding for anything that boots Docker: the slug becomes
  * the Compose project name, so two test repos on `main` would drive the same
- * containers — and so would a real worktree of the user's called `main`.
+ * containers - and so would a real worktree of the user's called `main`.
  */
 export async function makeRepo(label = "repo", branch = "main"): Promise<string> {
   const dir = await tmpDir(label);
@@ -180,8 +180,8 @@ export async function setHydrate(root: string, body: string): Promise<void> {
 /**
  * Complete teardown for a Docker-backed test.
  *
- * `grove down --remove` deliberately keeps volumes — that is the whole point of the
- * down/rm split — so a test that only calls it leaks a Postgres volume per run.
+ * `grove down --remove` deliberately keeps volumes - that is the whole point of the
+ * down/rm split - so a test that only calls it leaks a Postgres volume per run.
  * Tests own the resources they create, so they clean up by label, which is the
  * same mechanism `grove rm` and `grove gc` use.
  */

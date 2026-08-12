@@ -43,7 +43,7 @@ export interface Evidence {
   root: string;
   composeFiles: string[];
   /**
-   * False when the repo has no compose file at all — the other supported shape,
+   * False when the repo has no compose file at all - the other supported shape,
    * and the one `adapt` cannot do for you, because there is no machine-readable
    * description of the services to read.
    */
@@ -62,7 +62,7 @@ const COMPOSE_CANDIDATES = [
 const OVERLAY_NAME = "docker-compose.worktree.yml";
 
 /**
- * Image → what it is. A fast path only.
+ * Image -> what it is. A fast path only.
  *
  * The reliable signal is behavioural: an HTTP server answers `GET /` with a
  * status line and Postgres does not. This table exists so the common case needs
@@ -108,8 +108,8 @@ export async function findComposeFiles(root: string): Promise<string[]> {
  * Read the repo's compose setup as resolved data, not as text.
  *
  * `docker compose config --format json` expands anchors, `extends`, `include`,
- * profiles, `env_file` and `${VAR}` interpolation. Doing any of that ourselves —
- * or, worse, regexing the YAML — reproduces a parser Docker already ships and
+ * profiles, `env_file` and `${VAR}` interpolation. Doing any of that ourselves  - 
+ * or, worse, regexing the YAML - reproduces a parser Docker already ships and
  * gets a different answer than the thing that will actually run.
  */
 export async function gatherEvidence(
@@ -119,7 +119,7 @@ export async function gatherEvidence(
   const warnings: string[] = [];
   const files = opts.files?.length ? opts.files : await findComposeFiles(root);
 
-  // A repo with no compose file is not a failure — it is the other supported
+  // A repo with no compose file is not a failure - it is the other supported
   // shape, and the one `adapt` genuinely cannot do for you: there is no
   // machine-readable description of the services to read, so they have to be
   // identified from the code. Say that plainly rather than throwing. The caller
@@ -137,7 +137,7 @@ export async function gatherEvidence(
         `No compose file in ${root} (looked for ${COMPOSE_CANDIDATES.join(", ")}).`,
         `Nothing here is containerised, so every service is runtime = "host": grove`,
         `leases a port for each and hands it back through [render] or [env].`,
-        `\`adapt decide\` and \`adapt render\` have nothing to read — write`,
+        `\`adapt decide\` and \`adapt render\` have nothing to read - write`,
         `worktree.toml directly. What goes in it is one entry per hardcoded port,`,
         `which you find by reading the code: launch profiles, .env files, dev-server`,
         `config, and port literals in startup paths.`,
@@ -230,7 +230,7 @@ async function readService(
   );
 
   if (ports.length === 0 && expose.size === 0 && !raw.build) {
-    warnings.push(`${name}: no ports and no expose — cannot tell what it listens on`);
+    warnings.push(`${name}: no ports and no expose - cannot tell what it listens on`);
   }
 
   return {
@@ -288,7 +288,7 @@ export function guessKind(
       kind: "worker",
       layer: "worker",
       port: null,
-      evidence: "listens on nothing — no published port, no expose, no EXPOSE metadata",
+      evidence: "listens on nothing - no published port, no expose, no EXPOSE metadata",
       confidence: build ? "medium" : "low",
     };
   }
@@ -324,7 +324,7 @@ async function imageExposedPorts(image: string): Promise<number[]> {
 }
 
 /**
- * Observe rather than guess — but only where observation is cheap.
+ * Observe rather than guess - but only where observation is cheap.
  *
  * This probes host ports the base file already publishes, which means it works
  * on a stack the user has running right now and asks nothing of them. Booting an
@@ -344,7 +344,7 @@ async function probeServices(services: ServiceEvidence[], warnings: string[]): P
     } catch {
       // A refused connection means nothing is listening; a protocol error means
       // something is, but it does not speak HTTP. Both land here, so this only
-      // ever confirms HTTP — it never disproves it.
+      // ever confirms HTTP - it never disproves it.
       svc.probe = { port: published, http: false, status: null };
       warnings.push(`${svc.name}: nothing answered HTTP on :${published} (is the base stack running?)`);
     }

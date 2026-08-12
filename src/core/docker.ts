@@ -24,7 +24,7 @@ function lines(text: string): string[] {
  * Containers labelled as ours, including stopped ones.
  *
  * The proxy is excluded: it is shared machine-wide and belongs to no worktree, so
- * every caller here would otherwise have to remember to special-case it — and
+ * every caller here would otherwise have to remember to special-case it - and
  * exactly one forgotten check means `grove gc` tears down the ingress for every
  * running stack on the machine.
  */

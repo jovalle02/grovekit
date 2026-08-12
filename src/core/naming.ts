@@ -26,7 +26,7 @@ export function uniqueSlug(branch: string, taken: ReadonlySet<string>): string {
   return `${base.slice(0, MAX - 5).replace(/-+$/, "")}-${h}`;
 }
 
-/** `WT_PORT_DB`, `WT_URL_API` — the env var suffix for a service. */
+/** `WT_PORT_DB`, `WT_URL_API` - the env var suffix for a service. */
 export function envKey(service: string): string {
   return service.toUpperCase().replace(/[^A-Z0-9]/g, "_");
 }

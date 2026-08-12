@@ -17,7 +17,7 @@ export interface RunOptions {
 
 export async function run(opts: RunOptions): Promise<void> {
   if (opts.argv.length === 0) {
-    fail({ ok: false, error: "nothing to run", hint: "usage: grove run <command…>" }, opts.json);
+    fail({ ok: false, error: "nothing to run", hint: "usage: grove run <command...>" }, opts.json);
   }
 
   const ctx = await loadContext();
@@ -42,7 +42,7 @@ export async function run(opts: RunOptions): Promise<void> {
         error: `stack is ${manifest.status}, refusing to run`,
         hint:
           broken.length > 0
-            ? `unhealthy: ${broken.join(", ")} — try \`grove logs ${broken[0]}\``
+            ? `unhealthy: ${broken.join(", ")} - try \`grove logs ${broken[0]}\``
             : `run \`grove up\` first${stopped.length ? ` (not running: ${stopped.join(", ")})` : ""}`,
         ...(broken[0] ? { service: broken[0] } : {}),
       },
@@ -53,7 +53,7 @@ export async function run(opts: RunOptions): Promise<void> {
   const env = buildEnv(ctx, manifest);
 
   // A command pointed at BASE_URL will fail confusingly if that service was left
-  // out of scope. Warn rather than block — API-only runs are legitimate.
+  // out of scope. Warn rather than block - API-only runs are legitimate.
   const primary = manifest.services.find((s) => s.url && s.url === manifest.baseUrl);
   if (primary && primary.status !== "ready" && !opts.json) {
     console.error(

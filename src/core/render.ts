@@ -92,7 +92,7 @@ export async function renderFiles(
  * Whether git would ignore a path.
  *
  * A rendered file that is committed hands one worktree's ports to another the
- * next time someone checks the branch out — the same failure as a committed
+ * next time someone checks the branch out - the same failure as a committed
  * `.wt/state.json`, and just as quiet.
  */
 export async function isGitIgnored(root: string, file: string): Promise<boolean> {

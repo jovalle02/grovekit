@@ -11,7 +11,7 @@ describe("slugify", () => {
     assert.equal(slugify("release/2024.10"), "release-2024-10");
   });
 
-  it("never starts or ends with a dash — a DNS label may not", () => {
+  it("never starts or ends with a dash - a DNS label may not", () => {
     assert.equal(slugify("-leading"), "leading");
     assert.equal(slugify("trailing---"), "trailing");
     assert.equal(slugify("///"), "grove");

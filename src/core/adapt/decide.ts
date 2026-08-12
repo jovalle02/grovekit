@@ -11,7 +11,7 @@ export interface Decision {
   subdomain: string | null;
   /** Port the process listens on *inside* the container. */
   containerPort: number | null;
-  /** Publish a leased host port — for things the proxy cannot front. */
+  /** Publish a leased host port - for things the proxy cannot front. */
   hostPort: boolean;
   /** An HTTP path, an exec command, a TCP connect, or null for "running is enough". */
   health: string | { exec: string[] } | { tcp: true } | null;
@@ -56,7 +56,7 @@ export interface DecideOptions {
 /**
  * Turn evidence into decisions with no model in the loop.
  *
- * This is the offline path — CI, no session, or simply a repo shaped like every
+ * This is the offline path - CI, no session, or simply a repo shaped like every
  * other repo. The model's job in the interactive path is the same shape: return
  * this structure, with `evidence` and `confidence` on every entry, and let
  * deterministic code render the YAML.
@@ -96,7 +96,7 @@ function decideOne(svc: ServiceEvidence, review: string[]): Decision {
   const confidence: Confidence = probedHttp ? "high" : svc.guess.confidence;
 
   // The conservative host-port rule: if the base file published a port, the
-  // author wanted to reach that thing from the host, so keep it reachable — on a
+  // author wanted to reach that thing from the host, so keep it reachable - on a
   // leased port instead of a fixed one. If they did not publish it, it stays
   // internal, because making something reachable that was not is a bigger change
   // than the migration is entitled to make.
@@ -105,12 +105,12 @@ function decideOne(svc: ServiceEvidence, review: string[]): Decision {
 
   if (finalKind === "http" && wasPublished && svc.guess.confidence !== "high") {
     review.push(
-      `${svc.name}: assumed HTTP and given a URL, dropping its published port — ` +
+      `${svc.name}: assumed HTTP and given a URL, dropping its published port - ` +
         `if it is not HTTP, set kind to "tcp" and hostPort to true`,
     );
   }
   if (confidence === "low") {
-    review.push(`${svc.name}: low confidence — ${svc.guess.evidence}`);
+    review.push(`${svc.name}: low confidence - ${svc.guess.evidence}`);
   }
 
   const database = readDatabaseCredentials(svc);
@@ -183,7 +183,7 @@ function pickHealth(
  *
  * The join key is the published port: `localhost:4000` in an env value, plus a
  * service publishing 4000, identifies the target unambiguously. Regex belongs on
- * env *values* — never on the YAML, which Compose has already resolved for us.
+ * env *values* - never on the YAML, which Compose has already resolved for us.
  *
  * The split that matters is who reads the value. Server-to-server URLs stay on
  * the Docker network and are byte-identical in every worktree; browser-facing

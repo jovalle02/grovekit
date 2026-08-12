@@ -13,7 +13,7 @@ export interface RestartOptions {
 }
 
 /**
- * Stop and start again — scoped to what you name.
+ * Stop and start again - scoped to what you name.
  *
  * This exists because its absence was being worked around badly. With only
  * `down` and `up`, restarting one service meant taking the whole stack down and
@@ -29,7 +29,7 @@ export async function restart(opts: RestartOptions): Promise<void> {
   const selection = opts.services.length > 0 ? resolveSelection(ctx, opts.services) : [];
   const what = selection.length > 0 ? selection.join(", ") : "the whole stack";
 
-  if (!opts.json) console.log(c.dim(`restarting ${what} in ${ctx.slug}…`));
+  if (!opts.json) console.log(c.dim(`restarting ${what} in ${ctx.slug}...`));
 
   // Host processes have to be stopped explicitly: `up` will not replace a live
   // one unless its generated config changed, which is the correct default and
@@ -42,7 +42,7 @@ export async function restart(opts: RestartOptions): Promise<void> {
   }
 
   // Containers: `stop` rather than `down`, so volumes, networks and data survive
-  // — a restart is not a teardown.
+  // - a restart is not a teardown.
   if (selection.length > 0) await compose(ctx, ["stop", ...selection], !opts.json);
   else await compose(ctx, ["stop"], !opts.json);
 

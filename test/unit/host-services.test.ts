@@ -99,7 +99,7 @@ describe("[render] config", () => {
   });
 });
 
-/* ── runtime behaviour ────────────────────────────────────────────────────── */
+/* -- runtime behaviour ------------------------------------------------------ */
 
 function contextWith(services: { name: string; runtime: "compose" | "host" }[], leases: Record<string, number> = {}): Context {
   return {
@@ -249,7 +249,7 @@ runtime = "host"
 
 describe("config typos are caught, not ignored", () => {
   // The expensive kind of wrong: this exact [hydrate] parsed fine, produced
-  // empty lists, passed `grove doctor`, and got reported as working — while
+  // empty lists, passed `grove doctor`, and got reported as working - while
   // nothing was copied and nothing was linked.
   it("rejects table syntax where a list was meant", async () => {
     await rejects(

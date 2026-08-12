@@ -112,7 +112,7 @@ describe("decideHeuristically", () => {
 
   it("keeps a database reachable from the host, because the base file published it", () => {
     // The conservative rule: if the author published a port, they wanted to reach
-    // that thing. Keep it reachable — on a leased port, not a fixed one.
+    // that thing. Keep it reachable - on a leased port, not a fixed one.
     assert.equal(byName("db")?.hostPort, true);
     assert.equal(byName("db")?.subdomain, null);
     assert.deepEqual(byName("db")?.health, { exec: ["pg_isready", "-U", "app"] });

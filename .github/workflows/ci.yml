@@ -41,7 +41,7 @@ jobs:
       - run: npm run build
 
   docker:
-    # The suite that boots real stacks. Linux only — it needs a Docker daemon,
+    # The suite that boots real stacks. Linux only - it needs a Docker daemon,
     # and the hosted Windows and macOS runners do not have one.
     runs-on: ubuntu-latest
 

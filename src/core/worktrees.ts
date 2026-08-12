@@ -98,7 +98,7 @@ export async function liveSlugs(cwd = process.cwd()): Promise<Set<string>> {
       if (grove.slug) slugs.add(grove.slug);
     }
   } catch {
-    // Not in a repo — the registry alone has to answer.
+    // Not in a repo - the registry alone has to answer.
   }
 
   return slugs;

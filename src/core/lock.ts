@@ -7,7 +7,7 @@ const WAIT_MS = 10_000;
 
 /**
  * Cross-platform advisory lock. `mkdir` is atomic everywhere including Windows,
- * which makes it the simplest correct primitive here — no dependency and no
+ * which makes it the simplest correct primitive here - no dependency and no
  * O_EXCL behaviour differences to reason about.
  */
 export async function withLock<T>(file: string, fn: () => Promise<T>): Promise<T> {

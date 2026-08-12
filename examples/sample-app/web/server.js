@@ -1,7 +1,7 @@
 import http from "node:http";
 
 const PORT = 3000;
-// Injected by the overlay. Identical string in every worktree — that is the point.
+// Injected by the overlay. Identical string in every worktree - that is the point.
 const API_URL = process.env.API_URL ?? "http://api.internal:4000";
 
 const server = http.createServer(async (req, res) => {

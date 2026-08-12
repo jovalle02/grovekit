@@ -23,7 +23,7 @@ export interface Registry {
 /**
  * A *new* empty registry each time. Sharing one constant means the fallback's
  * array is the same object every caller gets, and the first `register()` on a
- * machine with no registry file pushes into it — so a later read of a different,
+ * machine with no registry file pushes into it - so a later read of a different,
  * genuinely empty registry returns the earlier entry from memory.
  */
 const empty = (): Registry => ({ schemaVersion: REGISTRY_SCHEMA_VERSION, worktrees: [] });
@@ -33,7 +33,7 @@ const empty = (): Registry => ({ schemaVersion: REGISTRY_SCHEMA_VERSION, worktre
  *
  * It is a cache, never an authority: `grove ls` still enumerates from git, because a
  * worktree created by hand is just as real as one created by `grove new`. What the
- * registry buys is the ability to answer questions from *outside* any worktree —
+ * registry buys is the ability to answer questions from *outside* any worktree  - 
  * chiefly `grove gc`, which has to recognise containers and leases whose worktree no
  * longer exists and therefore cannot be asked.
  */

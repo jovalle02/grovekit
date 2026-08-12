@@ -67,7 +67,7 @@ export async function listWorktrees(cwd: string): Promise<GitWorktree[]> {
 }
 
 /**
- * The main worktree — always the first entry git prints, and the only one that
+ * The main worktree - always the first entry git prints, and the only one that
  * cannot be removed. Used as the identity of the repository as a whole.
  */
 export async function mainWorktree(cwd: string): Promise<string> {
@@ -135,7 +135,7 @@ export async function deleteBranch(cwd: string, branch: string, force: boolean):
   return code === 0;
 }
 
-/** Uncommitted changes, including untracked files — `grove rm` must not eat work. */
+/** Uncommitted changes, including untracked files - `grove rm` must not eat work. */
 export async function isDirty(root: string): Promise<boolean> {
   const { code, stdout } = await exec("git", ["status", "--porcelain"], { cwd: root });
   return code === 0 && stdout.trim().length > 0;

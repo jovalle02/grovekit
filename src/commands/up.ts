@@ -85,7 +85,7 @@ export async function up(opts: UpOptions): Promise<Manifest> {
 
   if (!opts.json && !opts.quiet) {
     const pending = runtime.filter((s) => s.status === "starting").map((s) => s.config.name);
-    if (pending.length > 0) console.log(c.dim(`waiting for ${pending.join(", ")}…`));
+    if (pending.length > 0) console.log(c.dim(`waiting for ${pending.join(", ")}...`));
   }
 
   await waitReady(ctx, runtime, opts.timeoutMs ?? ctx.config.healthTimeoutMs);
@@ -112,12 +112,12 @@ export async function up(opts: UpOptions): Promise<Manifest> {
 
 /**
  * A container that exists but is not running, right after we asked Compose to
- * start it, has failed to start — it is not "stopped".
+ * start it, has failed to start - it is not "stopped".
  *
  * Without this a service that crashes fast enough to be gone before the first
  * `compose ps` is never watched by `waitReady`: it is not `starting`, so it is
  * never probed, never marked unhealthy, and never gets its logs attached. The
- * stack then reports `starting` with exit 0 — success, for a broken stack.
+ * stack then reports `starting` with exit 0 - success, for a broken stack.
  *
  * Services deliberately left down are exempt, which is why the caller has to say
  * both what it asked for and what was already stopped beforehand.
@@ -166,7 +166,7 @@ async function startHostServices(
     const name = svc.config.name;
     const existing = running[name];
     if (existing && isAlive(existing.pid)) {
-      // Already running and its config is unchanged — leave it be.
+      // Already running and its config is unchanged - leave it be.
       if (!configChanged) {
         svc.status = "starting";
         continue;
@@ -175,9 +175,9 @@ async function startHostServices(
       // Its generated config just changed underneath it, and it read that file
       // at startup. `grove up` is otherwise a no-op on a live stack, which meant
       // editing worktree.toml and re-running it silently kept serving the old
-      // ports — the change appeared to have been applied and had not been.
+      // ports - the change appeared to have been applied and had not been.
       if (!opts.json && !opts.quiet) {
-        console.log(c.dim(`restarting ${name} — its generated config changed`));
+        console.log(c.dim(`restarting ${name} - its generated config changed`));
       }
       await stopProcess(ctx.root, name);
     }
@@ -185,7 +185,7 @@ async function startHostServices(
     // Someone is already on the port we lease for this service, and it is not a
     // process of ours. Almost always an orphan of a previous run: leases are
     // deterministic, so the port a worktree gets is exactly the one its own last
-    // process was holding. Catching it here is the only honest place — once ours
+    // process was holding. Catching it here is the only honest place - once ours
     // has started and died, a TCP probe cannot tell whose socket it is answering
     // and would report the stack ready against a stranger's.
     const lease = ctx.leases[name];
@@ -207,7 +207,7 @@ async function startHostServices(
     // readiness gate, where it either answers or reports its own log.
     svc.status = "starting";
     if (!opts.json && !opts.quiet) {
-      console.log(`${c.green("✓")} started ${name} ${c.dim(`(pid ${record.pid}, logs: ${record.log})`)}`);
+      console.log(`${c.green("ok")} started ${name} ${c.dim(`(pid ${record.pid}, logs: ${record.log})`)}`);
     }
   }
 }
@@ -236,9 +236,9 @@ export async function applyRender(
 
   if (report) {
     for (const result of results) {
-      if (result.status === "written") console.log(`${c.green("✓")} rendered ${result.file}`);
+      if (result.status === "written") console.log(`${c.green("ok")} rendered ${result.file}`);
       else if (result.status === "failed") {
-        console.error(c.red(`✗ could not render ${result.file}: ${result.reason}`));
+        console.error(c.red(`x could not render ${result.file}: ${result.reason}`));
       }
     }
   }

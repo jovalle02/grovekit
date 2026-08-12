@@ -14,7 +14,7 @@ export interface HookOptions {
 
 export const HOOK_EVENTS = ["session-start", "session-end"] as const;
 
-/** A few ports — enough to recognise a stack, not enough to fill the screen. */
+/** A few ports - enough to recognise a stack, not enough to fill the screen. */
 function shortPorts(manifest: Manifest | null): string {
   const addresses = (manifest?.services ?? [])
     .map((svc) => svc.hostAddress)
@@ -42,22 +42,22 @@ export async function hook(opts: HookOptions): Promise<void> {
     else console.error(`unknown hook event "${opts.event}" (expected: ${HOOK_EVENTS.join(", ")})`);
   } catch {
     // Silence is the contract. A repo without worktree.toml, a stopped Docker
-    // daemon, a detached HEAD — none of them are the session's problem.
+    // daemon, a detached HEAD - none of them are the session's problem.
   }
 }
 
 /**
  * The stronger of the two hooks: there is a turn to render into, the state is
  * actionable, and stdout is injected into the agent's context. Keep it to a few
- * lines — this is prepended to every session in the repo.
+ * lines - this is prepended to every session in the repo.
  */
 async function sessionStart(opts: HookOptions): Promise<void> {
   const ctx = await loadContext();
   if (ctx.config.hooks.onSessionStart === "off") return;
 
   // Leases have to be resolved before the manifest is built, or every host
-  // address is null and the whole point of this hook — telling the session its
-  // own ports — reports nothing.
+  // address is null and the whole point of this hook - telling the session its
+  // own ports - reports nothing.
   await leaseHostPorts(ctx);
 
   const runtime = buildRuntime(ctx, await composePs(ctx));
@@ -84,7 +84,7 @@ async function sessionStart(opts: HookOptions): Promise<void> {
   // worktree fails in a way that looks like a broken app, not a wrong address.
   const mine = manifest.services.filter((svc) => svc.url ?? svc.hostAddress);
   if (mine.length > 0) {
-    lines.push("  Addresses for THIS worktree — use these, never a hardcoded port:");
+    lines.push("  Addresses for THIS worktree - use these, never a hardcoded port:");
     for (const svc of mine) {
       const state = svc.status === "ready" ? "" : `  (${svc.status})`;
       lines.push(`    ${svc.name.padEnd(18)} ${svc.url ?? svc.hostAddress}${state}`);
@@ -99,7 +99,7 @@ async function sessionStart(opts: HookOptions): Promise<void> {
   }
 
   // What else is live on this machine, named. "3 other worktrees" tells a
-  // session nothing it can act on — and a port that turns out to be taken is
+  // session nothing it can act on - and a port that turns out to be taken is
   // almost always taken by one of these.
   const live = others.filter((w) => w.manifest?.status === "ready");
   if (live.length > 0) {
@@ -116,7 +116,7 @@ async function sessionStart(opts: HookOptions): Promise<void> {
 }
 
 /**
- * `SessionEnd` has no turn to render into, so it cannot ask a question — which
+ * `SessionEnd` has no turn to render into, so it cannot ask a question - which
  * means the only thing safe to automate here is the reversible one. `down` keeps
  * volumes, data and port leases; `grove up` brings it all back in seconds. Removal
  * stays manual, forever.

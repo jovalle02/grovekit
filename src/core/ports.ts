@@ -10,7 +10,7 @@ const RANGE_SIZE = 4_000;
 type Leases = Record<string, number>;
 
 /**
- * Bind on 0.0.0.0, not 127.0.0.1 — that is what Docker does when publishing a
+ * Bind on 0.0.0.0, not 127.0.0.1 - that is what Docker does when publishing a
  * port, and it is strictly stronger: a loopback-only probe happily succeeds on a
  * port already held on another interface, and then `docker compose up` fails.
  */

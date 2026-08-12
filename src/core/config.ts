@@ -64,7 +64,7 @@ export async function loadConfig(root: string): Promise<Config> {
     port: proxyTable.port === undefined ? 80 : num(proxyTable.port, "proxy.port"),
     network: proxyTable.network === undefined ? "wt-proxy" : str(proxyTable.network, "proxy.network"),
     // Traefik < 3.6 negotiates a Docker API version below 1.44 and cannot talk to
-    // Docker Engine 29+ at all — it starts, serves 404s, and only the container
+    // Docker Engine 29+ at all - it starts, serves 404s, and only the container
     // logs say why. Do not lower this default without testing against Docker 29.
     image: proxyTable.image === undefined ? "traefik:v3.6" : str(proxyTable.image, "proxy.image"),
   };
@@ -137,7 +137,7 @@ function parseRender(value: unknown): Record<string, string> {
   for (const [file, template] of Object.entries(obj(value, "render"))) {
     if (path.isAbsolute(file) || file.split(/[\\/]/).includes("..")) {
       throw new ConfigError(
-        `render."${file}" must be a path inside the worktree — no absolute paths, no "..".`,
+        `render."${file}" must be a path inside the worktree - no absolute paths, no "..".`,
       );
     }
     out[file] = str(template, `render."${file}"`);
@@ -237,8 +237,8 @@ function parseServices(value: unknown): ServiceConfig[] {
 
     if (runtime === "host") {
       // A host process has no container and no Docker network, so the two things
-      // the proxy needs — a route to a container, and an internal address space
-      // to hide identical ports in — do not exist. All it can have is a leased
+      // the proxy needs - a route to a container, and an internal address space
+      // to hide identical ports in - do not exist. All it can have is a leased
       // port, which is therefore implied rather than configured.
       config.hostPort = true;
 
@@ -246,12 +246,12 @@ function parseServices(value: unknown): ServiceConfig[] {
         throw new ConfigError(
           `services[${i}] ("${name}") is runtime = "host" and cannot have a subdomain: the proxy ` +
             `routes to containers, and there is no container here. Reach it on its leased port ` +
-            `instead — WT_PORT_${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}.`,
+            `instead - WT_PORT_${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}.`,
         );
       }
       if (config.port !== undefined) {
         throw new ConfigError(
-          `services[${i}] ("${name}") is runtime = "host", so \`port\` has no meaning — that is the ` +
+          `services[${i}] ("${name}") is runtime = "host", so \`port\` has no meaning - that is the ` +
             `container port the proxy forwards to. The host port is leased, not chosen.`,
         );
       }
@@ -305,7 +305,7 @@ function parseHealth(value: unknown, where: string): HealthCheck {
   throw new ConfigError(`${where} must be a path string, { exec = [...] }, or { tcp = true }.`);
 }
 
-/* ── tiny typed accessors, so config errors name the offending key ─────────── */
+/* -- tiny typed accessors, so config errors name the offending key ----------- */
 
 function obj(v: unknown, where: string): Record<string, unknown> {
   if (typeof v !== "object" || v === null || Array.isArray(v)) {
@@ -319,7 +319,7 @@ function obj(v: unknown, where: string): Record<string, unknown> {
  *
  * Ignoring them silently is the expensive kind of wrong. A `[hydrate]` written
  * as `"path" = "copy"` rather than `copy = ["path"]` parses fine, yields empty
- * lists, passes `grove doctor`, and gets reported as working — while nothing is
+ * lists, passes `grove doctor`, and gets reported as working - while nothing is
  * copied and nothing is linked, with no message anywhere. A key we do not know
  * is always a mistake, and this is the only place that can see it.
  */

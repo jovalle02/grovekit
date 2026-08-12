@@ -59,7 +59,7 @@ export async function loadContext(cwd = process.cwd()): Promise<Context> {
   const file = stateFile(root);
   let state = await readJson<WorktreeState | null>(file, null);
 
-  // A state file naming a different directory did not originate here — it was
+  // A state file naming a different directory did not originate here - it was
   // committed to the repo or came along in a copy. Trusting its slug would make
   // this worktree drive another one's containers, so discard and re-derive.
   if (state && (!state.root || path.resolve(state.root) !== root)) state = null;

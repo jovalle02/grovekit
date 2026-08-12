@@ -5,7 +5,7 @@
  * `node --test <glob>` expands differently on cmd.exe, PowerShell and sh, and
  * this project has to run on all three.
  *
- * Docker-backed tests are behind `WT_TEST_DOCKER=1` — they take minutes, pull
+ * Docker-backed tests are behind `WT_TEST_DOCKER=1` - they take minutes, pull
  * images and publish real ports, which is not what `npm test` should do by
  * default. Everything else runs anywhere git does.
  */

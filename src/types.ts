@@ -26,14 +26,14 @@ export type HealthCheck =
   | { kind: "exec"; command: string[] }
   /** Open a TCP connection to the leased host port. */
   | { kind: "tcp" }
-  /** No check — ready as soon as Compose reports the container running. */
+  /** No check - ready as soon as Compose reports the container running. */
   | { kind: "none" };
 
 /**
  * Who runs the process.
  *
  * `compose` is a container this tool starts and stops. `host` is a process it
- * does not run at all — an orchestrator that launches its own children, a
+ * does not run at all - an orchestrator that launches its own children, a
  * compiled server, a dev server you start in your own terminal. For those the
  * only thing `grove` can usefully own is the port, which it leases and hands back
  * through `[render]` and the injected environment.
@@ -60,7 +60,7 @@ export interface ServiceConfig {
    * `host` services only: how to launch it.
    *
    * Present, and `grove up` starts the process with the worktree's environment
-   * injected, tracks its pid and waits for it to answer — the same contract a
+   * injected, tracks its pid and waits for it to answer - the same contract a
    * container gets. Absent, and the service is a port reservation this tool
    * merely observes, for something you start yourself.
    */
@@ -70,7 +70,7 @@ export interface ServiceConfig {
 
 /**
  * What a fresh worktree needs before it can run, and none of which git brings
- * along — every one of these paths is gitignored by definition.
+ * along - every one of these paths is gitignored by definition.
  *
  * `copy` for things you may edit per worktree (`.env`); `link` for things that
  * are large and identical (`node_modules`); `run` for the install command that
@@ -91,7 +91,7 @@ export interface HooksConfig {
   /** `status` injects stack state into the agent's first turn. */
   onSessionStart: "status" | "off";
   /**
-   * `SessionEnd` cannot ask a question — the session is over and there is no turn
+   * `SessionEnd` cannot ask a question - the session is over and there is no turn
    * to render a prompt into. So the only automatable action is the reversible
    * one: `down` stops containers and keeps every byte of data. Never `rm`.
    */
@@ -122,7 +122,7 @@ export interface Config {
   render: Record<string, string>;
 }
 
-/** `.wt/state.json` — identity of this worktree, written once and then stable. */
+/** `.wt/state.json` - identity of this worktree, written once and then stable. */
 export interface WorktreeState {
   slug: string;
   branch: string;
@@ -138,7 +138,7 @@ export interface WorktreeState {
 export interface ManifestService {
   name: string;
   layer: Layer;
-  /** `host` services are not started or stopped by this tool — see ServiceRuntime. */
+  /** `host` services are not started or stopped by this tool - see ServiceRuntime. */
   runtime: ServiceRuntime;
   status: ServiceStatus;
   /** External URL through the proxy, or null for services with no ingress. */

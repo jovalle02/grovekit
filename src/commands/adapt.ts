@@ -26,9 +26,9 @@ const STEPS = ["evidence", "decide", "render", "validate"] as const;
 /**
  * The migration pass, as four steps with exactly one model-shaped hole in it.
  *
- *   evidence   [code]   normalise + read the repo   → JSON
- *   decisions  [model]  ← the only judgment, and it is a FILE, not a command
- *   render     [code]   decisions → YAML + TOML
+ *   evidence   [code]   normalise + read the repo   -> JSON
+ *   decisions  [model]  <- the only judgment, and it is a FILE, not a command
+ *   render     [code]   decisions -> YAML + TOML
  *   validate   [code]   merge, boot, request every generated URL
  *
  * Splitting it this way is the point. A model that emits YAML directly produces
@@ -81,7 +81,7 @@ async function evidenceStep(root: string, opts: AdaptOptions): Promise<void> {
   // Not an error, and not something the rest of the pipeline can help with.
   // Explain the other path instead of printing an empty service table.
   if (!evidence.containerised) {
-    console.log(`${c.bold(evidence.project)} ${c.yellow("— nothing containerised")}`);
+    console.log(`${c.bold(evidence.project)} ${c.yellow(" -  nothing containerised")}`);
     console.log();
     for (const line of evidence.warnings) console.log(`  ${c.dim(line)}`);
     console.log();
@@ -95,7 +95,7 @@ async function evidenceStep(root: string, opts: AdaptOptions): Promise<void> {
     const ports = svc.ports.map((p) => (p.published ? `${p.published}->${p.target}` : `${p.target}`));
     console.log(
       `  ${c.bold(svc.name.padEnd(14))} ${svc.guess.kind.padEnd(7)} ${c.dim(
-        `${ports.join(",") || "no ports"} — ${svc.guess.evidence}`,
+        `${ports.join(",") || "no ports"} - ${svc.guess.evidence}`,
       )}`,
     );
   }
@@ -138,7 +138,7 @@ async function decideStep(root: string, opts: AdaptOptions): Promise<void> {
   }
 
   printDecisions(decisions);
-  console.log(c.dim(`written to ${path.relative(root, file)} — edit it, then \`grove adapt render\``));
+  console.log(c.dim(`written to ${path.relative(root, file)} - edit it, then \`grove adapt render\``));
 }
 
 async function renderStep(root: string, opts: AdaptOptions): Promise<void> {
@@ -172,7 +172,7 @@ async function renderStep(root: string, opts: AdaptOptions): Promise<void> {
       continue;
     }
     if (current !== null && !opts.force) {
-      written.push({ file: artifact.file, action: "skipped (exists — use --force)" });
+      written.push({ file: artifact.file, action: "skipped (exists - use --force)" });
       continue;
     }
     await fs.mkdir(outDir, { recursive: true });
@@ -185,7 +185,7 @@ async function renderStep(root: string, opts: AdaptOptions): Promise<void> {
     return;
   }
 
-  for (const entry of written) console.log(`${c.green("✓")} ${entry.action.padEnd(12)} ${entry.file}`);
+  for (const entry of written) console.log(`${c.green("ok")} ${entry.action.padEnd(12)} ${entry.file}`);
   for (const note of decisions.review) console.log(c.yellow(`  ! ${note}`));
   console.log();
   console.log(c.dim("next: `grove adapt validate`"));
@@ -234,7 +234,7 @@ async function validateStep(root: string, opts: AdaptOptions): Promise<void> {
         networks?: Record<string, { external?: boolean }>;
       };
 
-      // Networks shared between worktrees. Only these create ambiguity — a
+      // Networks shared between worktrees. Only these create ambiguity - a
       // private network has exactly one `api` in it.
       const shared = new Set(
         Object.entries(doc.networks ?? {})
@@ -249,7 +249,7 @@ async function validateStep(root: string, opts: AdaptOptions): Promise<void> {
 
         // The shared-network alias collision: every worktree attaches a service
         // called `api` to the same proxy network, so a bare `api` is ambiguous
-        // there. It works with one worktree and goes wrong with two — the worst
+        // there. It works with one worktree and goes wrong with two - the worst
         // possible failure mode, because everything you test first passes.
         if (onShared && !aliases.includes(`${name}.internal`)) {
           problems.push({
@@ -275,11 +275,11 @@ async function validateStep(root: string, opts: AdaptOptions): Promise<void> {
   if (opts.json) {
     printJson({ ok, problems });
   } else if (ok) {
-    console.log(`${c.green("✓")} overlay and config validate`);
+    console.log(`${c.green("ok")} overlay and config validate`);
     console.log(c.dim("next: `grove doctor`, then `grove up --build`"));
   } else {
     for (const problem of problems) {
-      console.log(`${c.red("✗")} ${problem.check.padEnd(20)} ${c.dim(problem.detail)}`);
+      console.log(`${c.red("x")} ${problem.check.padEnd(20)} ${c.dim(problem.detail)}`);
       if (problem.hint) console.log(`  ${c.dim("hint: " + problem.hint)}`);
     }
   }
@@ -313,7 +313,7 @@ function printDecisions(decisions: Decisions): void {
       : svc.hostPort
         ? "leased host port"
         : "internal only";
-    const mark = svc.confidence === "high" ? c.green("✓") : svc.confidence === "medium" ? c.yellow("~") : c.red("?");
+    const mark = svc.confidence === "high" ? c.green("ok") : svc.confidence === "medium" ? c.yellow("~") : c.red("?");
     console.log(`${mark} ${c.bold(svc.name.padEnd(14))} ${svc.kind.padEnd(7)} ${c.dim(where)}`);
     const rewrites = Object.keys(svc.envRewrites);
     if (rewrites.length > 0) console.log(c.dim(`    rewrites ${rewrites.join(", ")}`));

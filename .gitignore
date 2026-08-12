@@ -4,3 +4,10 @@ dist/
 
 # per-worktree runtime state
 .wt/
+
+# Agent tooling. This repo ships skill templates under templates/, but its own
+# assistant config is local and belongs to whoever is working in it.
+.claude/
+.agents/
+CLAUDE.md
+AGENTS.md

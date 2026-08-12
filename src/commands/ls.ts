@@ -15,7 +15,7 @@ export interface LsOptions {
 
 export interface LsEntry {
   path: string;
-  /** Main worktree of the repo this belongs to — only meaningful with `--all`. */
+  /** Main worktree of the repo this belongs to - only meaningful with `--all`. */
   repo: string | null;
   branch: string;
   slug: string | null;
@@ -53,7 +53,7 @@ function entryFor(
  * This repository's worktrees, enumerated from git.
  *
  * From git rather than the registry, so a worktree someone created by hand with
- * `git worktree add` still appears — the registry is a cache, and a listing that
+ * `git worktree add` still appears - the registry is a cache, and a listing that
  * silently omitted a real worktree would be worse than no listing.
  */
 async function localEntries(): Promise<LsEntry[]> {
@@ -72,7 +72,7 @@ async function localEntries(): Promise<LsEntry[]> {
  * Every worktree this machine knows about, across every repository.
  *
  * The registry is the only thing that spans repos, which makes this the one
- * command that can answer "what else is running?" — the question you have when a
+ * command that can answer "what else is running?" - the question you have when a
  * port is taken, or when a stack you did not start is holding memory, or when
  * you are about to stop something and want to know whose it is.
  */
@@ -124,14 +124,14 @@ export async function ls(opts: LsOptions): Promise<void> {
   // 23236" is the question, and a URL column alone cannot answer it.
   const summarise = (ports: Record<string, string>): string => {
     const values = Object.values(ports);
-    if (values.length === 0) return c.dim("—");
+    if (values.length === 0) return c.dim(" - ");
     const shown = values.slice(0, 3).map((v) => v.replace(/^localhost:/, ""));
     return shown.join(" ") + (values.length > 3 ? c.dim(` +${values.length - 3}`) : "");
   };
 
   const rows = entries.map((e) => {
     const cells = [
-      e.slug ?? c.dim("—"),
+      e.slug ?? c.dim(" - "),
       e.branch,
       style(e.status),
       e.baseUrl ?? summarise(e.ports),
@@ -139,7 +139,7 @@ export async function ls(opts: LsOptions): Promise<void> {
     ];
     // With `--all` the directory basename is ambiguous across repos, so name the
     // repository too.
-    if (opts.all) cells.splice(1, 0, c.dim(e.repo ? path.basename(e.repo) : "—"));
+    if (opts.all) cells.splice(1, 0, c.dim(e.repo ? path.basename(e.repo) : " - "));
     return cells;
   });
 
@@ -151,6 +151,6 @@ export async function ls(opts: LsOptions): Promise<void> {
 
   if (!opts.all) {
     console.log();
-    console.log(c.dim("  grove ls --all  — every worktree on this machine, across repos"));
+    console.log(c.dim("  grove ls --all  - every worktree on this machine, across repos"));
   }
 }

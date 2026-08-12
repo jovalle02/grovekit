@@ -86,7 +86,7 @@ describe("markFailedToStart", () => {
   // The bug this exists to prevent: a service that crashes before the first
   // `compose ps` is reported `stopped`, so `waitReady` never watches it, never
   // marks it unhealthy and never attaches its logs. `grove up` then exits 0 with
-  // status `starting` — apparent success for a broken stack.
+  // status `starting` - apparent success for a broken stack.
   it("treats a container that failed to start as starting, so it gets watched", () => {
     const runtime = [service("api", "stopped"), service("db", "ready")];
     markFailedToStart(runtime, new Set(), null);
@@ -101,7 +101,7 @@ describe("markFailedToStart", () => {
   });
 
   it("catches a service that was running before this call and is not now", () => {
-    // Not asked for, but it did not stop on its own — something killed it.
+    // Not asked for, but it did not stop on its own - something killed it.
     const runtime = [service("api", "starting"), service("web", "stopped")];
     markFailedToStart(runtime, new Set(), new Set(["api"]));
     assert.equal(runtime[1]?.status, "starting");

@@ -19,7 +19,7 @@ after(cleanup);
 /**
  * The tests that need Docker.
  *
- * Everything M1 got wrong presented as apparent success — a port silently not
+ * Everything M1 got wrong presented as apparent success - a port silently not
  * published, a proxy answering 404 with no error anywhere, one worktree driving
  * another's containers. None of that is observable without actually booting the
  * thing, so these exist even though they are slow.
@@ -33,7 +33,7 @@ describe("stack", { skip: dockerTests ? false : "set WT_TEST_DOCKER=1 to run Doc
   /**
    * Each test gets its own branch, and therefore its own slug, Compose project,
    * container names and port leases. Two tests on `main` would drive one set of
-   * containers — and so would any real worktree of the user's called `main`.
+   * containers - and so would any real worktree of the user's called `main`.
    */
   async function bootedRepo(label: string): Promise<{ repo: string; home: string; slug: string }> {
     const slug = `wt-test-${label}`;
@@ -154,12 +154,12 @@ describe("stack", { skip: dockerTests ? false : "set WT_TEST_DOCKER=1 to run Doc
 
       const api = manifest.services.find((s) => s.name === "api");
       assert.equal(api?.status, "unhealthy");
-      // The real application error, inline — not "timed out waiting for api".
+      // The real application error, inline - not "timed out waiting for api".
       assert.ok(api?.lastLogs?.some((l) => /boom from the fixture/.test(l)), api?.lastLogs?.join("\n"));
 
       // A dead container will never become healthy, so waiting out the full
       // health timeout is pure waste.
-      assert.ok(elapsed < 120_000, `took ${elapsed}ms — it burned the health timeout`);
+      assert.ok(elapsed < 120_000, `took ${elapsed}ms - it burned the health timeout`);
     } finally {
       await teardown(repo, slug, home);
     }

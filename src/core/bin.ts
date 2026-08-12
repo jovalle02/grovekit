@@ -8,7 +8,7 @@ export const PACKAGE_NAME = "grovekit";
  *
  * One name on purpose. Every extra alias is another thing that can be shadowed,
  * another string baked into someone's hook file, and another way for two
- * installs to disagree about which one is real — all of which this project has
+ * installs to disagree about which one is real - all of which this project has
  * already paid for once, when `wt` turned out to be Windows Terminal on every
  * Windows PATH.
  *
@@ -22,7 +22,7 @@ export interface ResolvedBin {
   command: string;
   /** Absolute path of the resolved executable, when we found one. */
   path: string | null;
-  /** False when we fell back — nothing on PATH was verifiably this package. */
+  /** False when we fell back - nothing on PATH was verifiably this package. */
   verified: boolean;
   /** A binary of the right *name* that belongs to something else. */
   shadowedBy: string | null;
@@ -44,7 +44,7 @@ async function candidates(name: string): Promise<string[]> {
  * Whether a file on PATH is actually this package.
  *
  * Name is not evidence. An npm shim either resolves to a path inside the package
- * or names the package in its text — a compiled `grove.exe` belonging to Windows
+ * or names the package in its text - a compiled `grove.exe` belonging to Windows
  * Terminal does neither, which is exactly the case that has to be caught.
  */
 export async function isOurBinary(file: string): Promise<boolean> {
@@ -64,7 +64,7 @@ export async function isOurBinary(file: string): Promise<boolean> {
  * How a hook or a doc should invoke this tool on *this* machine.
  *
  * Resolved at write time rather than assumed, because a hook that shells out to
- * a binary which is not on PATH — or is a different program with the same name —
+ * a binary which is not on PATH - or is a different program with the same name  - 
  * fails silently: the session starts, nothing is injected, and nothing anywhere
  * says why.
  */

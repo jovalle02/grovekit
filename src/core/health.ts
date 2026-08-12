@@ -21,7 +21,7 @@ export interface RuntimeService {
 /**
  * Merge declared services with what Compose actually reports.
  *
- * A service with no container is `not-started` — deliberately out of scope, not
+ * A service with no container is `not-started` - deliberately out of scope, not
  * broken. Everything running starts at `starting` and is promoted by probing.
  */
 export function buildRuntime(ctx: Context, ps: ComposePs[]): RuntimeService[] {
@@ -34,7 +34,7 @@ export function buildRuntime(ctx: Context, ps: ComposePs[]): RuntimeService[] {
     let status: ServiceStatus;
     if (config.runtime === "host") {
       // Compose has never heard of this one and never will. It starts as
-      // `not-started` — nobody asked *us* to start it — and `probeHosts`
+      // `not-started` - nobody asked *us* to start it - and `probeHosts`
       // promotes it if something is in fact listening on its leased port.
       status = "not-started";
     } else if (!row) status = "not-started";
@@ -74,7 +74,7 @@ export async function probeOnce(ctx: Context, runtime: RuntimeService[]): Promis
  *
  * Purely observational, and deliberately outside the readiness gate: `grove` did
  * not start these and cannot start them, so "nothing is listening yet" is not a
- * failure it may report — it would make `grove up` hang and `grove run` refuse over a
+ * failure it may report - it would make `grove up` hang and `grove run` refuse over a
  * process the developer simply has not launched. A host service is `ready` when
  * its port answers and `not-started` otherwise, and `not-started` is already the
  * status that means "nobody asked for this", which is exactly right here.
@@ -87,7 +87,7 @@ export async function probeHosts(ctx: Context, runtime: RuntimeService[]): Promi
       .filter((s) => s.config.runtime === "host")
       .map(async (svc) => {
         // Someone upstream already reached a verdict and attached the evidence
-        // for it — a port collision detected before starting, or a process seen
+        // for it - a port collision detected before starting, or a process seen
         // to die while waiting. Re-deriving it from the port here would discard
         // both the status and the explanation.
         if (svc.status === "unhealthy") return;
@@ -98,7 +98,7 @@ export async function probeHosts(ctx: Context, runtime: RuntimeService[]): Promi
 
         // For a service we started, the pid is the authority and the open port
         // is only corroboration. A TCP probe cannot tell "my process is up" from
-        // "somebody else is on that port" — and leases are deterministic, so an
+        // "somebody else is on that port" - and leases are deterministic, so an
         // orphan from a previous run is precisely the process most likely to be
         // sitting on it. Port-first reports `ready` for a stack that crashed on
         // startup, which is the worst answer available.
@@ -255,7 +255,7 @@ async function probe(ctx: Context, svc: RuntimeService): Promise<boolean> {
 
       // For a process we started, an open port is not sufficient evidence.
       // Leases are deterministic, so the port a worktree gets is exactly the one
-      // an orphan of its own previous run is holding — and answering `ready`
+      // an orphan of its own previous run is holding - and answering `ready`
       // against a stranger's socket is worse than answering `starting`.
       if (svc.config.runtime === "host" && svc.config.start) {
         const record = (await readProcesses(ctx.root))[svc.config.name];
@@ -271,7 +271,7 @@ async function probe(ctx: Context, svc: RuntimeService): Promise<boolean> {
  *
  * Both are required, and probing only IPv4 was a real false negative: a Vite dev
  * server binds `::1` alone, so `grove status` reported "not running" for a server
- * that was happily serving — and the workaround was to remove its health check,
+ * that was happily serving - and the workaround was to remove its health check,
  * which is the opposite of what a health check is for. Node resolves `localhost`
  * to `::1` first on Windows, so anything started through a URL rather than an
  * explicit bind address is likely to land there.

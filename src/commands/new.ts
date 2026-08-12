@@ -38,7 +38,7 @@ export interface NewOptions {
  * Create a worktree and leave it running.
  *
  * This exists because the honest version of the workflow is four commands with
- * error handling between them — branch, `git worktree add`, hydrate, `grove up` —
+ * error handling between them - branch, `git worktree add`, hydrate, `grove up`  - 
  * and both humans and agents chain those badly. One call, one JSON result, and
  * a half-built worktree is rolled back rather than left behind.
  */
@@ -108,16 +108,16 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
     const config = ctx.config;
 
     if (!opts.noHydrate && hasHydrateConfig(config.hydrate)) {
-      if (!opts.json) console.log(c.dim("hydrating…"));
+      if (!opts.json) console.log(c.dim("hydrating..."));
       hydration = await hydrate(here, dest, config.hydrate, {
         onProgress: (action) => {
           if (opts.json || action.status === "skipped") return;
-          const mark = action.status === "applied" ? c.green("✓") : c.red("✗");
+          const mark = action.status === "applied" ? c.green("ok") : c.red("x");
           console.log(`  ${mark} ${action.kind} ${action.target}`);
         },
       });
       if (!hydration.ok && !opts.json) {
-        console.error(c.yellow("warning: some hydration steps failed — see the report below"));
+        console.error(c.yellow("warning: some hydration steps failed - see the report below"));
       }
     }
 
@@ -174,7 +174,7 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
   } else {
     console.log();
     if (manifest) printManifest(manifest);
-    else console.log(`${c.green("✓")} ${c.bold(payload.worktree.slug)} created at ${dest}`);
+    else console.log(`${c.green("ok")} ${c.bold(payload.worktree.slug)} created at ${dest}`);
     console.log(c.dim(`  cd ${dest}`));
   }
 
@@ -184,8 +184,8 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
 /**
  * Undo everything this command established, in reverse.
  *
- * `grove gc` would eventually reclaim the leases and the registry entry — a slug
- * whose worktree is gone is exactly what it looks for — but leaving them for it
+ * `grove gc` would eventually reclaim the leases and the registry entry - a slug
+ * whose worktree is gone is exactly what it looks for - but leaving them for it
  * means the next `grove new` on the same branch gets a different port for no
  * reason, and `grove ls` shows a worktree that is not there.
  */
@@ -193,7 +193,7 @@ async function rollback(
   repo: string,
   dest: string,
   slug: string | null,
-  /** Only set when this invocation created it — never delete a pre-existing branch. */
+  /** Only set when this invocation created it - never delete a pre-existing branch. */
   branch: string | null,
 ): Promise<void> {
   try {
@@ -207,7 +207,7 @@ async function rollback(
   // `git worktree add -b` created the branch, so rolling back has to drop it
   // too. Leaving it behind makes the obvious retry do something *different* and
   // worse: the branch now exists, so the second run checks it out instead of
-  // creating it, inheriting whatever the first run based it on — and the error
+  // creating it, inheriting whatever the first run based it on - and the error
   // it then reports is about the consequence, not the cause.
   if (branch) await deleteBranch(repo, branch, true).catch(() => {});
 }

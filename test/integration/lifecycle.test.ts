@@ -140,7 +140,7 @@ describe("grove new", () => {
     await setHydrate(repo, 'copy = [".env"]\nlink = ["node_modules"]');
     await git(repo, ["commit", "-qam", "hydrate config"]);
 
-    // Both gitignored, so git will not bring them along — the whole problem.
+    // Both gitignored, so git will not bring them along - the whole problem.
     await write(path.join(repo, ".env"), "SECRET=1");
     await write(path.join(repo, "node_modules", "left-pad", "index.js"), "1");
     await write(path.join(repo, ".gitignore"), ".wt/\n.env\nnode_modules/\n");
@@ -316,7 +316,7 @@ describe("grove rm", () => {
   });
 
   it("removes a worktree whose name is a prefix of the one you are standing in", async () => {
-    // `app-feat` and `app-feature` are siblings, not parent and child — and
+    // `app-feat` and `app-feature` are siblings, not parent and child - and
     // branches named that way are the normal case for this tool.
     const repo = await makeRepo("rm-prefix");
     const wtHome = await home();
@@ -512,7 +512,7 @@ describe("grove install", () => {
     assert.match(settings.hooks.SessionStart?.[0]?.hooks[0]?.command ?? "", /hook session-start$/);
     assert.match(settings.hooks.SessionEnd?.[0]?.hooks[0]?.command ?? "", /hook session-end$/);
 
-    // A hook that shells out to a binary not on PATH fails silently — the
+    // A hook that shells out to a binary not on PATH fails silently - the
     // session starts and nothing anywhere says why. So the command written must
     // be resolved at install time, and verified to be *this* package: `ewt` when
     // it is installed globally, `grove` where that name is free, the npx fallback
@@ -648,7 +648,7 @@ describe("grove adapt", () => {
   });
 
   it("catches a service with no internal alias", async () => {
-    // Works with one worktree, goes ambiguous with two — the worst failure mode
+    // Works with one worktree, goes ambiguous with two - the worst failure mode
     // there is, because everything you test first passes.
     const repo = await makeRepo("adapt-validate-bad");
     const overlay = path.join(repo, "docker-compose.worktree.yml");
@@ -715,7 +715,7 @@ describe("grove adapt on a repo with no containers", () => {
       home: await home(),
     });
 
-    assert.equal(result.code, 0, "not an error — it is the other supported shape");
+    assert.equal(result.code, 0, "not an error - it is the other supported shape");
     const evidence = result.json<{ containerised: boolean; services: unknown[]; warnings: string[] }>();
     assert.equal(evidence.containerised, false);
     assert.deepEqual(evidence.services, []);
@@ -780,7 +780,7 @@ describe("session-start hook", () => {
 describe("install across a rename", () => {
   it("removes its own hook under an old name, and keeps the user's", async () => {
     // A rename that leaves both installed injects the session context twice, and
-    // the stale entry keeps working — so nothing ever surfaces it.
+    // the stale entry keeps working - so nothing ever surfaces it.
     const repo = await makeRepo("install-rename");
     const wtHome = await home();
     await write(

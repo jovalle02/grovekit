@@ -125,7 +125,7 @@ describe("isOurBinary", () => {
 describe("tcpReachable", () => {
   // A Vite dev server binds ::1 only. Probing IPv4 alone reported "not running"
   // for a server that was serving, and the workaround was to delete its health
-  // check — the opposite of what a health check is for.
+  // check - the opposite of what a health check is for.
   it("finds a listener bound to IPv6 loopback only", async () => {
     const { tcpReachable } = await import("../../src/core/health.js");
     const net = await import("node:net");

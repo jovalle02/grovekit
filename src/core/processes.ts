@@ -29,7 +29,7 @@ export async function readProcesses(root: string): Promise<Ledger> {
  *
  * Signal 0 asks the kernel "may I signal this process" without sending
  * anything, which is the cheapest liveness test there is. It cannot tell a
- * recycled pid from the original — but the window for that is a machine reboot
+ * recycled pid from the original - but the window for that is a machine reboot
  * plus 32k process launches, and the cost of being wrong is a stale row in a
  * status table.
  */
@@ -59,7 +59,7 @@ export async function startProcess(
   const log = logFile(root, service);
   await fs.mkdir(path.dirname(log), { recursive: true });
 
-  // Not the command directly — a supervisor, which then starts the command.
+  // Not the command directly - a supervisor, which then starts the command.
   const child = spawn(process.execPath, ["-e", SUPERVISOR, log, command], {
     cwd: root,
     env: { ...process.env, ...env },
@@ -91,7 +91,7 @@ export async function startProcess(
  * A supervisor process, passed to `node -e`.
  *
  * It exists because on Windows the two properties `grove up` needs are mutually
- * exclusive in a single spawn — measured, not assumed:
+ * exclusive in a single spawn - measured, not assumed:
  *
  *   attached   output is captured, but the process dies when `grove` exits
  *   detached   the process survives, but its output goes nowhere, because a
@@ -103,7 +103,7 @@ export async function startProcess(
  * platform. It is inlined rather than shipped as a file so that the path is the
  * same whether the CLI is running from `dist/` or through tsx from `src/`.
  *
- * With `node -e <script> a b`, argv is [execPath, a, b] — there is no script
+ * With `node -e <script> a b`, argv is [execPath, a, b] - there is no script
  * path in the middle.
  */
 const SUPERVISOR = `
@@ -116,7 +116,7 @@ const child = spawn(rest.join(" "), {
   stdio: ["ignore", fd, fd],
   windowsHide: true,
 });
-// Exit with the child, so a live supervisor always means a live service — which
+// Exit with the child, so a live supervisor always means a live service - which
 // is exactly what the pid in .wt/processes.json is taken to mean.
 child.on("exit", (code, signal) => process.exit(signal ? 1 : (code === null ? 0 : code)));
 child.on("error", (err) => {
@@ -130,7 +130,7 @@ child.on("error", (err) => {
  *
  * The pid we hold is the supervisor, not the application. Build tools commonly
  * launch the real process as a child, and an orchestrator may start a dozen.
- * Signalling only the pid leaves all of them running and holding the ports —
+ * Signalling only the pid leaves all of them running and holding the ports  - 
  * which looks exactly like `grove down` having done nothing.
  */
 export async function stopProcess(root: string, service: string): Promise<boolean> {

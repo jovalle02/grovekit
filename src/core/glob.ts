@@ -3,7 +3,7 @@ import path from "node:path";
 
 /**
  * Directories `**` never descends into. A pattern that names one explicitly, as
- * in `apps/<any>/node_modules`, still matches — this only stops a bare `**` from
+ * in `apps/<any>/node_modules`, still matches - this only stops a bare `**` from
  * walking a quarter-million files to find one.
  */
 const PRUNE = new Set([".git", "node_modules", ".wt", "dist", ".next", "target"]);
@@ -29,7 +29,7 @@ function segmentToRegex(seg: string): RegExp {
  * Expand a glob against a root, returning POSIX-style relative paths that exist.
  *
  * Deliberately small: hydration patterns look like `.env` or `apps/x/.env.local`
- * with wildcards — no brace expansion, no negation. Results are sorted so a
+ * with wildcards - no brace expansion, no negation. Results are sorted so a
  * hydration plan is reproducible and diffable.
  */
 export async function expandGlob(root: string, pattern: string): Promise<string[]> {

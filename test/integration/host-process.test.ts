@@ -93,7 +93,7 @@ describe("host processes", () => {
     const down = await runCli(["down", "--json"], { cwd: repo, home, timeoutMs: 60_000 });
     assert.equal(down.code, 0, down.stderr);
 
-    // The ledger is cleared and the process is gone — `down` on a host stack has
+    // The ledger is cleared and the process is gone - `down` on a host stack has
     // to actually stop something, or it silently does nothing at all.
     const ledger = await readJsonFile<Record<string, unknown>>(
       path.join(repo, ".wt", "processes.json"),
@@ -139,7 +139,7 @@ describe("host processes", () => {
 
     const api = manifest.services.find((s) => s.name === "api");
     assert.equal(api?.status, "unhealthy");
-    // Its stdout/stderr, captured — there is no `docker logs` to fall back on.
+    // Its stdout/stderr, captured - there is no `docker logs` to fall back on.
     assert.ok(
       api?.lastLogs?.some((l) => /boom from the fixture/.test(l)),
       `logs were: ${JSON.stringify(api?.lastLogs)}`,
@@ -238,7 +238,7 @@ describe("host processes", () => {
 /**
  * The claim that makes several worktrees usable at once: stopping one leaves the
  * others alone. Asserted rather than reasoned about, because the reasoning is
- * exactly the kind that has been wrong before — containers are addressed by the
+ * exactly the kind that has been wrong before - containers are addressed by the
  * Compose project name and processes by a per-worktree ledger, and both of those
  * are one refactor away from leaking.
  *

@@ -39,7 +39,7 @@ export interface HydrateResult {
   /** Lockfiles compared, relative to the root. Empty when there was nothing to compare. */
   lockfiles: string[];
   /**
-   * True when every compared lockfile hashed identically — which is exactly the
+   * True when every compared lockfile hashed identically - which is exactly the
    * condition under which sharing one `node_modules` between worktrees is safe.
    */
   lockfilesMatch: boolean;
@@ -63,8 +63,8 @@ export function hasHydrateConfig(cfg: HydrateConfig): boolean {
 /**
  * Make a freshly-created worktree runnable.
  *
- * A new worktree is broken on arrival: everything it needs to boot — `.env`,
- * credentials, `node_modules` — is gitignored, so git does not bring it along.
+ * A new worktree is broken on arrival: everything it needs to boot - `.env`,
+ * credentials, `node_modules` - is gitignored, so git does not bring it along.
  * That is the single biggest daily papercut this tool exists to remove.
  *
  * The `link` vs `run` decision is made from evidence rather than configuration:
@@ -100,7 +100,7 @@ export async function hydrate(
           kind: "link",
           target: rel,
           status: "skipped",
-          reason: `lockfile changed on this branch — ${cfg.run.length > 0 ? "installing instead" : "install manually"}`,
+          reason: `lockfile changed on this branch - ${cfg.run.length > 0 ? "installing instead" : "install manually"}`,
         });
         continue;
       }
@@ -189,7 +189,7 @@ async function linkOne(
     const stat = await fs.stat(from);
     await fs.mkdir(path.dirname(to), { recursive: true });
     // On Windows a directory junction needs neither elevation nor Developer Mode,
-    // unlike a real directory symlink — which is why this is not `"dir"`. It also
+    // unlike a real directory symlink - which is why this is not `"dir"`. It also
     // requires an absolute target, hence the resolve above.
     const type = stat.isDirectory() ? (process.platform === "win32" ? "junction" : "dir") : "file";
     await fs.symlink(from, to, type);

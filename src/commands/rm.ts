@@ -15,7 +15,7 @@ import { leaseHostPorts } from "./up.js";
  * Path containment, done properly.
  *
  * A plain `startsWith` says `app-feature` is inside `app-feat`, so sibling
- * worktrees named after related branches — which is the normal case here —
+ * worktrees named after related branches - which is the normal case here  - 
  * would refuse to be removed. The separator is what makes it a real boundary.
  */
 function isInside(child: string, parent: string): boolean {
@@ -35,7 +35,7 @@ export interface RmOptions {
   /** Remove even when the worktree has uncommitted changes. */
   force: boolean;
   deleteBranch: boolean;
-  /** Keep named volumes — the databases — behind. */
+  /** Keep named volumes - the databases - behind. */
   keepVolumes: boolean;
 }
 
@@ -104,7 +104,7 @@ export async function rm(opts: RmOptions): Promise<void> {
     // that says "0 containers" for a stack that was running reads as a bug.
     removed = await removeProject(slug, { volumes: !opts.keepVolumes, dryRun: true });
 
-    // Prefer Compose — it knows about orphans and anonymous volumes. Fall back to
+    // Prefer Compose - it knows about orphans and anonymous volumes. Fall back to
     // the label sweep when the config no longer loads, which happens whenever the
     // branch predates worktree.toml.
     try {
@@ -124,7 +124,7 @@ export async function rm(opts: RmOptions): Promise<void> {
   try {
     await removeWorktree(repo, target.path, opts.force);
   } catch (err) {
-    // On Windows this is nearly always core.longpaths, and git does not say so —
+    // On Windows this is nearly always core.longpaths, and git does not say so  - 
     // it exits 255 with a generic message. Anyone who has hit it before will
     // recognise it; anyone who has not will go looking in the wrong place.
     const longPaths =
@@ -136,7 +136,7 @@ export async function rm(opts: RmOptions): Promise<void> {
         ok: false,
         error: `git worktree remove failed: ${(err as Error).message}`,
         hint: longPaths
-          ? "core.longpaths is not set, which is the usual cause on Windows — git cannot " +
+          ? "core.longpaths is not set, which is the usual cause on Windows - git cannot " +
             "delete paths over 260 characters. `git config --global core.longpaths true`, " +
             "then retry. The stack is already stopped either way."
           : "the stack has already been torn down; re-run with --force to drop the directory",
@@ -171,7 +171,7 @@ export async function rm(opts: RmOptions): Promise<void> {
     return;
   }
 
-  console.log(`${c.green("✓")} removed ${c.bold(slug ?? path.basename(target.path))}`);
+  console.log(`${c.green("ok")} removed ${c.bold(slug ?? path.basename(target.path))}`);
   console.log(
     c.dim(
       `  ${removed.containers} containers, ${payload.removed.volumes} volumes, ` +

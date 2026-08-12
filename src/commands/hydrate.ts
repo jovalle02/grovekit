@@ -58,7 +58,7 @@ export async function hydrateCommand(opts: HydrateOptions): Promise<void> {
     console.log(c.dim(`from ${source}`));
     for (const action of result.actions) {
       const mark =
-        action.status === "applied" ? c.green("✓") : action.status === "failed" ? c.red("✗") : c.dim("·");
+        action.status === "applied" ? c.green("ok") : action.status === "failed" ? c.red("x") : c.dim("-");
       const reason = action.reason ? c.dim(` (${action.reason})`) : "";
       console.log(`${mark} ${action.kind.padEnd(4)} ${action.target}${reason}`);
     }
@@ -66,7 +66,7 @@ export async function hydrateCommand(opts: HydrateOptions): Promise<void> {
     if (result.lockfiles.length > 0) {
       console.log(
         c.dim(
-          `lockfiles ${result.lockfiles.join(", ")}: ${result.lockfilesMatch ? "identical — safe to link" : "differ — installed instead"}`,
+          `lockfiles ${result.lockfiles.join(", ")}: ${result.lockfilesMatch ? "identical - safe to link" : "differ - installed instead"}`,
         ),
       );
     }

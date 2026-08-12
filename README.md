@@ -10,7 +10,7 @@
 ```bash
 grove new feat/login       # branch + worktree + deps + ports + running
 grove run pnpm test:e2e    # BASE_URL, API_URL, DATABASE_URL injected
-grove rm feat-login        # worktree, containers, volumes, ports — all of it
+grove rm feat-login        # worktree, containers, volumes, ports - all of it
 ```
 
 ---
@@ -20,7 +20,7 @@ grove rm feat-login        # worktree, containers, volumes, ports — all of it
 You are on `feat/login`. Someone reports a bug on `main`. You stash, switch, wait
 for the stack to come back, fix it, switch back, and wait again.
 
-So you make a second worktree — and everything collides. Two apps want `:3000`.
+So you make a second worktree - and everything collides. Two apps want `:3000`.
 Two databases want `:5432`. You start renumbering by hand, and that number
 ripples through six env files across three layers.
 
@@ -36,22 +36,35 @@ so two worktrees can both run `web:3000` and `db:5432` and never meet. Compose
 already gives you one network per project name; what it does not give you is a
 way back in. That is the proxy's only job.
 
-```
-HOST — one published port on the whole machine
-┌──────────────────────────────────────────────┐
-│  :80  traefik                                │
-└───┬──────────────────────────┬───────────────┘
-    │ Host: web.feat-a…        │ Host: web.fix-b…
-┌───▼───────────────┐   ┌──────▼────────────┐
-│ net: feat-a       │   │ net: fix-b        │
-│   web  :3000      │   │   web  :3000      │  ← identical. fine.
-│   api  :4000      │   │   api  :4000      │
-│   db   :5432      │   │   db   :5432      │
-└───────────────────┘   └───────────────────┘
+```mermaid
+flowchart TB
+    browser["Browser"]
+    traefik["traefik<br/>the only published port<br/>on the whole machine"]
+
+    subgraph A ["network: feat-a"]
+        weba["web :3000"]
+        apia["api :4000"]
+        dba["db :5432"]
+        weba --> apia --> dba
+    end
+
+    subgraph B ["network: fix-b"]
+        webb["web :3000"]
+        apib["api :4000"]
+        dbb["db :5432"]
+        webb --> apib --> dbb
+    end
+
+    browser --> traefik
+    traefik -- "Host: web.feat-a..." --> weba
+    traefik -- "Host: web.fix-b..." --> webb
 ```
 
+Identical port numbers in both, and they never meet. The only thing that has to
+be unique is the hostname, and that comes from the worktree name.
+
 The hostname is the routing key, so no port ever appears in a URL. Everything
-*inside* the stack — `DATABASE_URL`, service-to-service calls — is byte-identical
+*inside* the stack - `DATABASE_URL`, service-to-service calls - is byte-identical
 in every worktree. Only browser-facing URLs vary, and they come from `${WT_NAME}`.
 
 **And when there is no Docker at all**, the same idea reduces to its useful core:
@@ -82,7 +95,7 @@ Then, in Claude Code:
 
 The agent reads your repo, works out what the services are and which ports are
 pinned, writes `worktree.toml`, boots it, and reports back. You review the diff
-and commit it — **to your default branch**, since a worktree inherits its
+and commit it - **to your default branch**, since a worktree inherits its
 branch's files.
 
 After that, day to day:
@@ -98,18 +111,18 @@ Open a second terminal, do the same for another branch, and both run at once.
 
 | | |
 |---|---|
-| `grove new <branch>` | branch, worktree, hydrate, start — one call |
-| `grove up [services…]` | start and block until healthy; idempotent |
-| `grove down [services…]` | stop, keeping volumes, data and leases |
-| `grove restart [services…]` | stop and start again — only what you name |
+| `grove new <branch>` | branch, worktree, hydrate, start - one call |
+| `grove up [services...]` | start and block until healthy; idempotent |
+| `grove down [services...]` | stop, keeping volumes, data and leases |
+| `grove restart [services...]` | stop and start again - only what you name |
 | `grove rm <worktree>` | delete a worktree and everything it owns |
 | `grove gc` | reclaim containers, volumes and leases nothing owns |
-| `grove run <cmd…>` | run with this worktree's environment injected |
+| `grove run <cmd...>` | run with this worktree's environment injected |
 | `grove status` | this worktree: services, ports, health |
 | `grove ls` / `grove ls --all` | this repo's worktrees / every one on the machine |
-| `grove logs [services…]` | container or captured process logs |
+| `grove logs [services...]` | container or captured process logs |
 | `grove hydrate` | re-copy gitignored files from the main worktree |
-| `grove adapt <step>` | migrate a repo: evidence → decide → render → validate |
+| `grove adapt <step>` | migrate a repo: evidence -> decide -> render -> validate |
 | `grove install` | agent skill, slash command, hooks |
 | `grove doctor` | check the environment and the migration |
 
@@ -127,7 +140,7 @@ grove up --group backend    # a named set from worktree.toml
 grove up api --no-deps      # exactly api
 ```
 
-What you leave out is `not-started` — a distinct state from `unhealthy`. The
+What you leave out is `not-started` - a distinct state from `unhealthy`. The
 stack still reports `ready`, and nothing will try to "repair" a service you left
 out on purpose. Adding one later (`grove up web`) extends the set without
 restarting what is already running.
@@ -135,7 +148,7 @@ restarting what is already running.
 ### Everything is scoped to your worktree
 
 `down`, `restart` and `rm` cannot reach another worktree. Containers are
-addressed by the Compose project name — which *is* your worktree's slug — and
+addressed by the Compose project name - which *is* your worktree's slug - and
 host processes by that worktree's own ledger. This is asserted by tests, not
 merely believed.
 
@@ -146,7 +159,7 @@ for "who is holding that port?"
 
 Two files next to your compose file. **`docker-compose.yml` is never modified.**
 
-**`docker-compose.worktree.yml`** — an overlay, applied with `-f base -f overlay`:
+**`docker-compose.worktree.yml`** - an overlay, applied with `-f base -f overlay`:
 
 ```yaml
 services:
@@ -161,7 +174,7 @@ services:
       - traefik.http.services.${WT_NAME}-api.loadbalancer.server.port=4000
 
   db:
-    ports: !override ["${WT_PORT_DB}:5432"]   # leased host port — see gotchas
+    ports: !override ["${WT_PORT_DB}:5432"]   # leased host port - see gotchas
     networks: [internal]
 
 networks:
@@ -171,7 +184,7 @@ networks:
     name: ${WT_PROXY_NETWORK}
 ```
 
-**`worktree.toml`** — what each service is, and how to tell it is up:
+**`worktree.toml`** - what each service is, and how to tell it is up:
 
 ```toml
 [project]
@@ -217,7 +230,7 @@ is the most expensive kind of typo, so there is no such thing here.
 ## Stacks Docker doesn't run
 
 Not every repo is containerised. An orchestrator that launches its own child
-processes, a compiled server, a dev server you start yourself — these bind host
+processes, a compiled server, a dev server you start yourself - these bind host
 ports directly, so there is no Docker network to hide identical ports inside and
 the proxy has nothing to route to.
 
@@ -226,7 +239,7 @@ What still collides is the port, and that part `grove` can own:
 ```toml
 [project]
 name = "my-app"
-compose = []               # nothing containerised at all — that's allowed
+compose = []               # nothing containerised at all - that's allowed
 
 [[services]]
 name = "server"
@@ -236,7 +249,7 @@ health = { tcp = true }
 
 [[services]]
 name = "api-grpc"
-runtime = "host"           # no `start` — just reserve the port
+runtime = "host"           # no `start` - just reserve the port
 health = { tcp = true }
 
 # Hand the leases back through a file the app already reads.
@@ -245,13 +258,13 @@ health = { tcp = true }
 { "ports": { "apiGrpc": ${WT_PORT_API_GRPC} } }
 """
 
-# …or through the environment, for anything read from there.
+# ...or through the environment, for anything read from there.
 [env]
 SERVER_URL = "https://localhost:${WT_PORT_SERVER}"
 ```
 
 `grove up` renders the config, starts the process with that environment, records
-its pid and waits for it to answer — the same contract a container gets. `down`
+its pid and waits for it to answer - the same contract a container gets. `down`
 stops it and everything it spawned; `logs` shows its captured output; a rendered
 file that changes restarts the process that reads it.
 
@@ -273,7 +286,7 @@ which layer broke and why.
   "scope": ["api", "db"],
   "baseUrl": "http://web.fix-billing.localtest.me:8081",
   "services": [
-    { "name": "api", "status": "ready", "url": "…", "internalUrl": "http://api.internal:4000" },
+    { "name": "api", "status": "ready", "url": "...", "internalUrl": "http://api.internal:4000" },
     { "name": "db",  "status": "ready", "hostAddress": "localhost:23229" },
     { "name": "web", "status": "not-started" }
   ]
@@ -281,15 +294,15 @@ which layer broke and why.
 ```
 
 `status: ready` means everything in `scope` is ready. `not-started` means the
-service was never asked for — it is not a failure, and consumers must not try to
+service was never asked for - it is not a failure, and consumers must not try to
 repair it. That distinction is the whole reason partial startup is safe.
 
 ## Agent integration
 
 `grove install` writes:
 
-- `.claude/skills/grove/SKILL.md` — the daily-use skill
-- `.claude/commands/setup-grove.md` — the `/setup-grove` migration command
+- `.claude/skills/grove/SKILL.md` - the daily-use skill
+- `.claude/commands/setup-grove.md` - the `/setup-grove` migration command
 - `SessionStart` / `SessionEnd` hooks, **merged** into `.claude/settings.json`
   rather than overwriting it
 - `.wt/` in `.gitignore`, and an `AGENTS.md` section if that file exists
@@ -298,7 +311,7 @@ repair it. That distinction is the whole reason partial startup is safe.
 
 ```
 grove: worktree `feat-login` (branch feat/login), stack ready.
-  Addresses for THIS worktree — use these, never a hardcoded port:
+  Addresses for THIS worktree - use these, never a hardcoded port:
     web                http://web.feat-login.localtest.me:8081
     api                http://api.feat-login.localtest.me:8081
     db                 localhost:21750
@@ -320,11 +333,11 @@ Every one was found by running it, not by reading docs. The full list, with what
 each cost, is in [DESIGN.md](DESIGN.md).
 
 **`!reset` erases, `!override` replaces.** `ports: !reset ["8080:80"]` publishes
-*nothing* — the value is ignored. `grove doctor` checks for it.
+*nothing* - the value is ignored. `grove doctor` checks for it.
 
-**Traefik must be ≥ 3.6 on Docker Engine 29+.** Earlier 3.x negotiates a Docker
+**Traefik must be >= 3.6 on Docker Engine 29+.** Earlier 3.x negotiates a Docker
 API version below 1.44, which Engine 29 rejects. Traefik still starts and still
-answers — with 404 for everything, and only its container logs say why.
+answers - with 404 for everything, and only its container logs say why.
 
 **Every service on the shared network needs a `<name>.internal` alias.** A bare
 `api` is ambiguous there, because every worktree has one. It works with a single
@@ -342,7 +355,7 @@ another's identity and drive its containers. `grove install` writes the
 internally; `curl`, Node `fetch` and Playwright do not. Default to `localtest.me`.
 
 **`NEXT_PUBLIC_*` / `VITE_*` are baked at build time.** Setting them under
-`environment:` does nothing for the browser bundle — use `build.args`, or serve a
+`environment:` does nothing for the browser bundle - use `build.args`, or serve a
 runtime `/env.js`.
 
 **Watch for launcher wrappers that override the environment.** Some run commands
@@ -360,7 +373,7 @@ npm run build
 ```
 
 Docker tests each use their own branch, and therefore their own Compose project,
-containers and port leases — they will not touch a stack you have running.
+containers and port leases - they will not touch a stack you have running.
 
 ## License
 

@@ -21,28 +21,28 @@ import { c, fail } from "./core/output.js";
 
 const VERSION = "0.4.0";
 
-const HELP = `${c.bold("grove")} — every git worktree gets its own stack
+const HELP = `${c.bold("grove")} - every git worktree gets its own stack
 
 ${c.dim("USAGE")}
   grove <command> [options]
 
 ${c.dim("LIFECYCLE")}
   new <branch>        Create a worktree, hydrate it, start it
-  up [services…]      Start the stack and wait until healthy
-  down [services…]    Stop this worktree's stack (keeps volumes, data, leases)
-  restart [services…] Stop and start again — only what you name
+  up [services...]      Start the stack and wait until healthy
+  down [services...]    Stop this worktree's stack (keeps volumes, data, leases)
+  restart [services...] Stop and start again - only what you name
   rm <worktree>       Delete a worktree and everything it owns
   gc                  Reclaim containers, volumes and leases nothing owns
 
 ${c.dim("USING A WORKTREE")}
-  run <command…>      Run a command with this worktree's env injected
+  run <command...>      Run a command with this worktree's env injected
   status              Show what is running (read-only)
-  logs [services…]    Show container logs
+  logs [services...]    Show container logs
   ls                  List this repo's worktrees; --all spans every repo
   hydrate             Re-copy gitignored files from the main worktree
 
 ${c.dim("SETUP")}
-  adapt <step>        evidence | decide | render | validate — migrate a repo
+  adapt <step>        evidence | decide | render | validate - migrate a repo
   install             Add the agent skill, slash command and hooks
   doctor              Check the environment and the migration
 
@@ -105,7 +105,7 @@ async function main(): Promise<void> {
     const sep = rest.indexOf("--");
 
     // Split at whichever comes first. If a bare token leads, everything from it
-    // onward is the child command — including any later `--`, which then belongs
+    // onward is the child command - including any later `--`, which then belongs
     // to the child (`grove run node -e x -- --json`).
     const candidates = [bare, sep].filter((i) => i !== -1);
     const cut = candidates.length === 0 ? -1 : Math.min(...candidates);

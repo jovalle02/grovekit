@@ -33,10 +33,10 @@ export type HealthCheck =
  * Who runs the process.
  *
  * `compose` is a container this tool starts and stops. `host` is a process it
- * does not run at all — an orchestrator, a `the run command`, a dev server you
- * start in your own terminal. For those, the only thing `wt` can usefully own is
- * the port, which it leases and then hands back through `[render]` and the
- * injected environment.
+ * does not run at all — an orchestrator that launches its own children, a
+ * compiled server, a dev server you start in your own terminal. For those the
+ * only thing `wt` can usefully own is the port, which it leases and hands back
+ * through `[render]` and the injected environment.
  *
  * This is what makes the tool useful to a stack that is not containerised: the
  * proxy trick needs a Docker network to hide identical ports inside, and a host
@@ -116,9 +116,8 @@ export interface Config {
    *
    * The counterpart to `host` services: leasing a port is only useful if the
    * process that needs it can find out what it got. Most non-containerised
-   * stacks already read a local config file — an orchestrator reads
-   * `the generated config`, a Vite app reads `.env.local` — so rendering that
-   * one file per worktree is the whole integration.
+   * stacks already read a local config file at startup, so rendering that one
+   * file per worktree is the whole integration.
    */
   render: Record<string, string>;
 }

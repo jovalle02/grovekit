@@ -135,8 +135,8 @@ export function markFailedToStart(
  *
  * Idempotent in the way that matters: a service whose process is already alive
  * is left running rather than started twice. `wt up` is meant to be safe to run
- * whenever you are unsure, and a second server fighting the first over the
- * ports would be the worst possible answer to that.
+ * whenever you are unsure, and a second copy fighting the first over the ports
+ * would be the worst possible answer to that.
  */
 async function startHostServices(
   ctx: Context,
@@ -197,9 +197,8 @@ async function startHostServices(
  *
  * Shared by `up` and `status` so that a worktree's generated config is refreshed
  * by any command that looks at it, not only by the one that starts things. A
- * host process is usually launched by the developer directly — `the run command`,
- * `pnpm dev` — and by then the last `wt` command they ran may well have been
- * `wt status`.
+ * host process without a `start` is launched by the developer directly, and by
+ * then the last `wt` command they ran may well have been `wt status`.
  *
  * A failed render is reported and does not abort: the containers are already up,
  * and taking the stack down over a typo in a template would be a worse outcome

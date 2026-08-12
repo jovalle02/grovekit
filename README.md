@@ -137,10 +137,11 @@ installs instead.
 
 ## Stacks Docker doesn't run
 
-Not every repo is containerised. A an orchestrator, a `the run command`, a dev
-server you start yourself — these bind host ports directly, so there's no Docker
-network to hide identical ports inside and the proxy has nothing to route to.
-What still collides is the port, and that part `wt` can own:
+Not every repo is containerised. An orchestrator that launches its own child
+processes, a compiled server, a dev server you start yourself — these bind host
+ports directly, so there's no Docker network to hide identical ports inside and
+the proxy has nothing to route to. What still collides is the port, and that
+part `wt` can own:
 
 ```toml
 [project]
@@ -150,7 +151,7 @@ compose = []               # nothing containerised at all — that's allowed
 [[services]]
 name = "server"
 runtime = "host"           # not a container
-start = "the run command --project src/server"
+start = "./scripts/dev-server"
 health = { tcp = true }
 
 [[services]]
@@ -160,8 +161,8 @@ health = { tcp = true }
 
 # Hand the leases back through a file the app already reads.
 [render]
-"src/server/the generated config" = """
-{ "Ports": { "ApiGrpc": ${WT_PORT_API_GRPC} } }
+"config/ports.generated.json" = """
+{ "ports": { "apiGrpc": ${WT_PORT_API_GRPC} } }
 """
 
 # …or through the environment, for anything read from there.
@@ -182,9 +183,11 @@ Rendered files are rewritten only when their content changes — those paths are
 what a hot-reloading dev server watches — and `wt doctor` checks they're
 gitignored, since committed they'd hand every worktree the same ports.
 
-**One gotcha worth knowing if you use `the run command`:** it applies the launch
-profile's `environmentVariables` *over* the ambient environment, so anything you
-inject is ignored. Pass `--no-launch-profile` and supply what the profile set.
+**Watch for launcher wrappers that override the environment.** Some run commands
+apply their own profile's variables *over* the ambient environment, so what `wt`
+injects is silently ignored and the process comes up on its hardcoded port. If a
+leased port shows in `wt status --env` but the process ignores it, that is
+usually why — look for a flag that skips the profile.
 
 ## Gotchas this repo learned the hard way
 

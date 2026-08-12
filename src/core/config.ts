@@ -68,9 +68,8 @@ export async function loadConfig(root: string): Promise<Config> {
   }
 
   // A repo with nothing containerised is a legitimate case, and the one this
-  // tool's port leasing is most useful for — an orchestrator, a `the run command`,
-  // a dev server. What is not legitimate is declaring a Compose service and then
-  // giving Compose no file to find it in.
+  // tool's port leasing is most useful for. What is not legitimate is declaring
+  // a Compose service and then giving Compose no file to find it in.
   if (compose.length === 0 && services.some((s) => s.runtime === "compose")) {
     const names = services.filter((s) => s.runtime === "compose").map((s) => s.name);
     throw new ConfigError(

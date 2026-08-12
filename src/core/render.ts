@@ -44,8 +44,7 @@ export function interpolate(
  * This is the half of `host` services that makes them worth having: a leased
  * port is useless until the process that needs it can find out what it got, and
  * these stacks already read a local config file. Rendering that file per
- * worktree is the whole integration — an orchestrator reads
- * `the generated config`, a Vite app reads `.env.local`.
+ * worktree is the whole integration.
  *
  * A file whose content has not changed is left alone. Rewriting it every
  * `wt status` would touch its mtime, and these paths are exactly the ones a file

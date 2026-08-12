@@ -128,11 +128,10 @@ child.on("error", (err) => {
 /**
  * Stop a service we started, and everything it spawned.
  *
- * The pid we hold is the shell we launched, not the application: `the run command`
- * alone is a launcher that starts the real process as a child, and an orchestrator
- * server starts a dozen more. Signalling only the pid leaves all of them
- * running and holding the ports — which looks exactly like `wt down` having
- * done nothing.
+ * The pid we hold is the supervisor, not the application. Build tools commonly
+ * launch the real process as a child, and an orchestrator may start a dozen.
+ * Signalling only the pid leaves all of them running and holding the ports —
+ * which looks exactly like `wt down` having done nothing.
  */
 export async function stopProcess(root: string, service: string): Promise<boolean> {
   const ledger = await readProcesses(root);

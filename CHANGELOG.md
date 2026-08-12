@@ -2,15 +2,16 @@
 
 ## 0.3.0
 
-Stacks that Docker does not run. Built against a real non-containerised repository,
-which is where every fix below came from.
+Stacks that Docker does not run. Built against a real non-containerised
+repository, which is where every fix below came from.
 
 ### Added
 
-- **`runtime = "host"` services.** A service Docker does not run — an orchestrator
-  server, a `the run command`, a dev server. The proxy trick needs a Docker network
-  to hide identical ports inside and a host process has none, so what `wt` owns
-  instead is the port: one lease per worktree.
+- **`runtime = "host"` services.** A service Docker does not run — an
+  orchestrator that launches its own children, a compiled server, a dev server.
+  The proxy trick needs a Docker network to hide identical ports inside and a
+  host process has none, so what `wt` owns instead is the port: one lease per
+  worktree.
 - **`start` on a host service.** `wt up` renders the config, launches the process
   with the worktree's environment, records its pid and waits for it to answer —
   the same contract a container gets. `wt down` stops it and everything it

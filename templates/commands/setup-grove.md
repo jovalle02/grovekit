@@ -112,29 +112,57 @@ grove status --json
 If a service never becomes healthy, the manifest names it and carries its logs.
 Fix the overlay, not the test.
 
-## 5. Report
+## 5. Does a new worktree need a copy of the data?
+
+The stack is up, so now ask this - once, here, and write the answer down. It is
+the last decision setup makes, and the only one that cannot be worked out from
+the repo.
+
+```
+grove seed --json
+```
+
+Read-only. It reports the databases in this stack, whether they are running, and
+how large they are.
+
+- `databases` is empty, or every entry has `hasData: false` - **do not ask
+  anything.** There is nothing there to copy. Say so in the report and move on.
+- An entry has `hasData: true` - **ask the user, and wait for the answer.**
+
+Ask it concretely, with the size in it and both consequences stated:
+
+> `main` has a database with data in it (`db`, 260 MB). Every new worktree starts
+> with an empty one. Should `grove new` copy it, so a new branch starts from the
+> same data? It would add a few minutes to creating each worktree. If your
+> migrations and seeds rebuild the data on boot, say no - you do not need it.
+
+**Yes** - append the `from` value that `grove seed --json` reported:
+
+```toml
+[seed]
+from = "main"
+```
+
+Every `grove new` then copies without asking again. Note that re-running
+`grove adapt render --force` rewrites `worktree.toml`, so this key has to be
+re-added if that ever happens.
+
+**No** - write nothing. A new worktree gets an empty database, and
+`grove new <branch> --seed-from main` remains available for the one-off case.
+
+Do not decide this yourself, and do not write the key because it seems helpful.
+It makes every future `grove new` slower for everyone on the repo, which is the
+user's call.
+
+## 6. Report
 
 Tell the user, briefly:
 
 - which services got public URLs, and what they are
 - which kept a host port, and why
 - anything with `confidence: "low"` that they should check
+- whether new worktrees will copy the database, and what that adds to `grove new`
 - the one-line commands they now have: `grove new <branch>`, `grove up`, `grove run <cmd>`
-
-If the repo has a database, run `grove seed --json` and ask one more question:
-**does a fresh stack end up with usable data on its own?**
-
-If migrations and a seed script run on boot, nothing more is needed - every
-worktree is identical for free. If the data got there by restoring a dump by
-hand, a new worktree starts empty and useless, so tell them about
-`grove new --seed-from <worktree>`, which copies the contents across before the
-application starts.
-
-Do not decide this for them, and do not add `[seed] from = "main"` to
-worktree.toml unless they ask for it: that setting makes every future
-`grove new` copy without asking, which is their call and not yours. When you
-raise it, say what it costs - the copy is the slowest part of creating a
-worktree and scales with the size of the data.
 
 ---
 

@@ -94,8 +94,10 @@ Then, in Claude Code:
 ```
 
 The agent reads your repo, works out what the services are and which ports are
-pinned, writes `worktree.toml`, boots it, and reports back. You review the diff
-and commit it - **to your default branch**, since a worktree inherits its
+pinned, writes `worktree.toml`, boots it, and reports back. It asks you exactly
+one thing it cannot work out from the code: if it finds a database with data in
+it, whether a new worktree should start from a copy of that data. You review the
+diff and commit it - **to your default branch**, since a worktree inherits its
 branch's files.
 
 After that, day to day:
@@ -213,12 +215,12 @@ copy it with: grove new <branch> --seed-from main
 ```
 
 That command exists for the agent as much as for you. `grove new` cannot prompt
-an agent - a question nobody is reading is a hang - so the asking has to happen
-one level up, in the session. The installed skill tells the agent to run
-`grove seed --json` before every `grove new`, and to put the question to you with
-the size in it when it finds a database with data. It decides nothing on its own:
-if you say yes it passes `--seed-from`, if you say no it passes `--no-seed`, so
-the command records what was chosen.
+an agent - a question nobody is reading is a hang - so the asking happens once,
+during `/setup-grove`. The agent runs `grove seed --json`, and if it finds a
+database with data in it, puts the question to you with the size attached: should
+every new worktree start from a copy? Your answer becomes the `[seed]` line, or
+no line at all. It decides nothing on its own and does not ask again afterwards,
+because the repo now has the answer.
 
 `grove seed --from <worktree>` does the copy into a worktree that already exists,
 replacing its data.

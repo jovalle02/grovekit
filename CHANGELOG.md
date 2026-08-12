@@ -29,13 +29,16 @@
   copying anything. `grove seed --from <worktree>` does the copy into a worktree
   that already exists.
 
-  It exists because the asking has to happen one level above the CLI. `grove new`
-  cannot prompt an agent, so an agent without a way to look would either
-  interrupt about repos that have no database or quietly decide for the user.
-  The installed skill now tells it to run `grove seed --json` before every
-  `grove new`, put the question to the user with the size in it, and pass
-  `--seed-from` or `--no-seed` according to the answer - so the decision is the
-  user's and the command records which one was made.
+  It exists because the asking has to happen one level above the CLI: `grove new`
+  cannot prompt an agent, and an agent with no way to look would either interrupt
+  about repos that have no database or quietly decide for the user.
+
+  `/setup-grove` now has a step for it. It runs `grove seed --json`, and if it
+  finds a database with data, asks the user with the size attached whether new
+  worktrees should start from a copy. The answer becomes a `[seed] from` line in
+  worktree.toml, or no line at all. Asked once, at setup, by the only step that
+  is already a conversation - and not re-asked on every `grove new` afterwards,
+  because the repo now carries the answer.
 
 - Interactively, `grove new` measures the source and offers the copy with the
   size attached - the transfer dominates how long the command takes, and that is

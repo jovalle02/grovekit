@@ -34,55 +34,42 @@ Options worth knowing: `--from <ref>` to branch from something other than the
 default, `--no-up` to create it without starting anything, `--path <dir>` to
 choose the location.
 
-## Before creating a worktree: check for a database and ask
+## Database contents in a new worktree
 
-A new worktree gets an **empty** database. Whether that is fine or useless
-depends on something only the user knows, so do not decide it for them.
+A new worktree gets an **empty** database. Whether that matters was settled once,
+during `/setup-grove`, and written into `worktree.toml`:
 
-**Every time you are about to run `grove new`, check first:**
+- **`[seed] from = "..."` is present** - `grove new` copies the databases from
+  that worktree before the application starts. Nothing to ask.
+- **absent** - a new worktree starts empty, because the data is rebuilt from the
+  repo on boot or because the user said they did not need it.
 
-    grove seed --json
+**Do not re-ask this on every `grove new`.** The repo has answered it. Read
+`worktree.toml` if you need to know which way.
 
-Read-only. It reports the databases in the main worktree, whether they are
-running, and how big they are.
+When it is set, say what the wait will be before you start it. The copy dominates
+everything else `grove new` does and scales with the size of the data, not the
+repo: a small database adds seconds, a few gigabytes turn a ten-second command
+into several minutes with no output in between, and a `--timeout` that was
+generous without a copy may not be with one. `grove seed --json` reports the size
+without copying anything, so you can say the number before you begin. The `seed`
+object in the result says what was copied afterwards.
 
-Then:
+Two overrides, for the one-off case rather than the standing policy:
 
-- **No databases, or `hasData` is false on all of them** - say nothing, just run
-  `grove new`. There is nothing to ask about.
-- **A database with `hasData: true`** - **ask the user before running anything.**
+    grove new feat/thing --seed-from main --json   # copy, whatever the config says
+    grove new feat/thing --no-seed --json          # do not copy
 
-Ask it concretely, with the number in it:
+Use them when the user asks for this worktree specifically. If they want it to
+be the rule from now on, that is a `[seed] from` line in `worktree.toml` and it
+is their decision to make, not yours.
 
-> `main` has a database with data in it (`db`, 260 MB). A new worktree starts
-> with an empty one. Do you want me to copy it so the new environment starts from
-> the same data? It would add a few minutes to the setup.
+If a worktree already exists and turns out to need the data, `grove seed --from
+main` copies into it. That replaces what is in there, so confirm before running
+it.
 
-Then run whichever they chose:
-
-    grove new feat/thing --seed-from main --json     # yes
-    grove new feat/thing --no-seed --json            # no
-
-Pass the flag explicitly either way. It records what was decided in the command
-itself, instead of leaving a reader to work out which default applied.
-
-**Say what the wait will be before you start it.** The copy dominates everything
-else `grove new` does and scales with the size of the data, not the repo. A small
-database adds seconds; a few gigabytes turn a ten-second command into several
-minutes with no output in between, and a `--timeout` that was generous without a
-copy may not be with one. The `seed` object in the result reports what was
-copied and how many bytes moved.
-
-Notes:
-
-- The two databases stay separate afterwards. Copying shares a starting point,
-  not a schema, so migrating one branch cannot reach the other.
-- `--seed-from` is obeyed as given: it copies even when the source looks empty.
-- If the repo sets `[seed] from` in worktree.toml the answer is already decided
-  for everyone and `grove new` copies without asking. `grove seed --json` still
-  reports what will happen, so you can still tell the user what to expect.
-- To copy into a worktree that already exists: `grove seed --from main`. It
-  replaces that worktree's data, so ask first there too.
+The two databases stay separate either way. Copying shares a starting point, not
+a schema, so migrating one branch cannot reach the other.
 
 ## Running things
 

@@ -35,6 +35,7 @@ const config: Config = {
   hydrate: { copy: [], link: [], run: [], lockfiles: [] },
   hooks: { onSessionStart: "status", onSessionEnd: "off" },
   render: {},
+  seed: { from: null },
 };
 
 const ctx: Context = {

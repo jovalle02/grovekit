@@ -12,6 +12,7 @@ import {
   tmpDir,
   write,
 } from "../helpers.js";
+import { execSafe } from "../../src/core/exec.js";
 import type { Manifest } from "../../src/types.js";
 
 after(cleanup);
@@ -227,6 +228,74 @@ describe("stack", { skip: dockerTests ? false : "set WT_TEST_DOCKER=1 to run Doc
         leasedBefore,
       );
     } finally {
+      await teardown(repo, slug, home);
+    }
+  });
+
+  it("copies a database into a new worktree", { timeout: TIMEOUT }, async () => {
+    // The point of the whole feature: a second worktree that starts from the
+    // first one's data instead of an empty volume, and stays a separate database
+    // afterwards rather than a second window onto a shared one.
+    const { repo, home, slug } = await bootedRepo("stack-seed");
+    const child = `${slug}-copy`;
+    const childRepo = path.join(path.dirname(repo), `${path.basename(repo)}-${child}`);
+
+    /** Ask Compose which container is this project's `db`, rather than guessing its name. */
+    const dbContainer = async (project: string): Promise<string> => {
+      const { stdout } = await execSafe("docker", [
+        "ps", "--format", "{{.Names}}",
+        "--filter", `label=com.docker.compose.project=${project}`,
+        "--filter", "label=com.docker.compose.service=db",
+      ]);
+      return stdout.trim().split(/\r?\n/)[0] ?? "";
+    };
+    const psql = (container: string, sql: string) =>
+      execSafe("docker", ["exec", "-e", "PGPASSWORD=app", container, "psql", "-U", "app", "-d", "app", "-tAc", sql]);
+
+    try {
+      await runCli(["up", "db", "--no-deps", "--build", "--json"], { cwd: repo, home, timeoutMs: TIMEOUT });
+
+      const source = await dbContainer(slug);
+      assert.ok(source, "the source database is running");
+
+      // Data that exists nowhere in the repo, so finding it in the copy can only
+      // mean it was copied rather than rebuilt.
+      const written = await psql(
+        source,
+        "create table widget (id int primary key, name text); insert into widget values (1, 'from-the-source')",
+      );
+      assert.equal(written.code, 0, written.stderr);
+
+      const created = await runCli(["new", child, "--seed-from", slug, "--build", "--json"], {
+        cwd: repo,
+        home,
+        timeoutMs: TIMEOUT,
+      });
+      assert.equal(created.code, 0, created.stdout + created.stderr);
+
+      const payload = created.json<{
+        seed: { ok: boolean; from: string; databases: { service: string; copied: boolean; error?: string }[] };
+      }>();
+      assert.ok(payload.seed, "the result says what it copied");
+      assert.equal(payload.seed.ok, true, JSON.stringify(payload.seed.databases));
+      assert.equal(payload.seed.databases[0]?.service, "db");
+
+      const target = await dbContainer(child);
+      assert.ok(target, "the new worktree has its own database container");
+      assert.notEqual(target, source, "and it is a different container");
+
+      const copied = await psql(target, "select name from widget where id = 1");
+      assert.match(copied.stdout, /from-the-source/, copied.stderr);
+
+      // Two databases, not one shared behind a copy: a write here is invisible there.
+      const local = await psql(target, "insert into widget values (2, 'only-here')");
+      assert.equal(local.code, 0, local.stderr);
+
+      const back = await psql(source, "select count(*) from widget");
+      assert.equal(back.stdout.trim(), "1", "a write in the copy reached the source");
+    } finally {
+      await runCli(["rm", child, "--force", "--json"], { cwd: repo, home, timeoutMs: TIMEOUT }).catch(() => {});
+      await teardown(childRepo, child, home).catch(() => {});
       await teardown(repo, slug, home);
     }
   });

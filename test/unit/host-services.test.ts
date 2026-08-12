@@ -125,6 +125,7 @@ function contextWith(services: { name: string; runtime: "compose" | "host" }[], 
       hydrate: { copy: [], link: [], run: [], lockfiles: [] },
       hooks: { onSessionStart: "status" as const, onSessionEnd: "off" as const },
       render: {},
+  seed: { from: null },
     },
   };
 }

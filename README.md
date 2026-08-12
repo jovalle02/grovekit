@@ -112,6 +112,7 @@ Open a second terminal, do the same for another branch, and both run at once.
 | | |
 |---|---|
 | `grove new <branch>` | branch, worktree, hydrate, start - one call |
+| `grove new --seed-from <wt>` | the same, starting from another worktree's data |
 | `grove up [services...]` | start and block until healthy; idempotent |
 | `grove down [services...]` | stop, keeping volumes, data and leases |
 | `grove restart [services...]` | stop and start again - only what you name |
@@ -144,6 +145,53 @@ What you leave out is `not-started` - a distinct state from `unhealthy`. The
 stack still reports `ready`, and nothing will try to "repair" a service you left
 out on purpose. Adding one later (`grove up web`) extends the set without
 restarting what is already running.
+
+### Starting from another worktree's data
+
+A new worktree gets an empty database. When the data comes from the repo -
+migrations plus a seed script that run on boot - that is exactly right, and this
+section is not for you.
+
+It is for the other case: the data got there by restoring a dump, and no new
+worktree can reproduce it. That is the reason people give up on isolation and go
+back to one shared database, where a migration on one branch breaks everyone
+else's.
+
+```bash
+grove new feat/thing --seed-from main
+```
+
+`pg_dump` in one container piped straight into `pg_restore` in the other, before
+the application starts. Nothing lands on disk in between, so a database larger
+than your free space still copies. Postgres, MySQL/MariaDB and Mongo are
+recognised by image; the credentials come from the running container rather than
+from a re-parse of the compose file.
+
+Afterwards they are still two databases. The copy shares a starting point, not a
+schema: migrating one branch cannot reach the other.
+
+**It costs what the data weighs.** The copy dominates the time `grove new` takes
+and scales with the size of the database, not the repo. Run interactively, grove
+measures the source first and offers the copy with the size attached, so the wait
+is a choice:
+
+```
+main has data worth copying: db (260 MB)
+The new worktree would start from the same data instead of an empty database.
+The copy is what dominates how long this takes - expect minutes on a large one.
+Copy it? [y/N]
+```
+
+An agent is never asked - a prompt nobody is reading is a hang - so `--json`
+without `--seed-from` simply does not copy. To make it the default for everyone,
+name the source in `worktree.toml`:
+
+```toml
+[seed]
+from = "main"
+```
+
+`--no-seed` overrides that and skips it.
 
 ### Everything is scoped to your worktree
 

@@ -1,6 +1,6 @@
 {
   "name": "grovekit",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A grove of git worktrees: every branch gets its own running stack, on its own ports.",
   "type": "module",
   "bin": {

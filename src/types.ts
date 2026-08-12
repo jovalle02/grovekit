@@ -111,6 +111,16 @@ export interface Config {
   hydrate: HydrateConfig;
   hooks: HooksConfig;
   /**
+   * Where a new worktree's databases get their starting data.
+   *
+   * Null means nobody is asked and nothing is copied, which is right when the
+   * data comes from the repo: migrations and a seed script rebuild it on every
+   * boot. Set it to a worktree and `grove new` copies from there instead, for
+   * the case where the data came from a dump somebody restored by hand and
+   * cannot be rebuilt from the code.
+   */
+  seed: { from: string | null };
+  /**
    * Files written from this worktree's environment, keyed by path relative to the
    * worktree root.
    *

@@ -47,7 +47,7 @@ export async function loadConfig(root: string): Promise<Config> {
 
   noUnknownKeys(
     raw,
-    ["project", "domain", "proxy", "services", "groups", "commands", "env", "health", "hydrate", "hooks", "render"],
+    ["project", "domain", "proxy", "services", "groups", "commands", "env", "health", "hydrate", "hooks", "render", "seed"],
     "worktree.toml",
   );
 
@@ -127,6 +127,7 @@ export async function loadConfig(root: string): Promise<Config> {
     healthTimeoutMs,
     hydrate: parseHydrate(raw.hydrate),
     hooks: parseHooks(raw.hooks),
+    seed: parseSeed(raw.seed),
     render: parseRender(raw.render),
   };
 }
@@ -156,6 +157,28 @@ function parseHydrate(value: unknown): HydrateConfig {
     run: table.run === undefined ? [] : strArray(table.run, "hydrate.run"),
     lockfiles: table.lockfiles === undefined ? [] : strArray(table.lockfiles, "hydrate.lockfiles"),
   };
+}
+
+/**
+ * Where `grove new` copies database contents from.
+ *
+ * Absent by default, and absent means silence: no prompt, no copy. A stack whose
+ * seed data is rebuilt from the repo on boot wants nothing to do with this, and
+ * that is most of them.
+ */
+function parseSeed(value: unknown): Config["seed"] {
+  if (value === undefined) return { from: null };
+  const table = obj(value, "seed");
+  noUnknownKeys(table, ["from"], "[seed]");
+  if (table.from === undefined) return { from: null };
+
+  const from = str(table.from, "seed.from").trim();
+  if (!from) {
+    throw new ConfigError(
+      "seed.from is empty. Name the worktree to copy from (a branch, a slug or a path), or remove the key.",
+    );
+  }
+  return { from };
 }
 
 function parseHooks(value: unknown): HooksConfig {

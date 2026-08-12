@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.5.0
+
+### Added
+
+- **`grove new --seed-from <worktree>`** copies database contents into the new
+  worktree before the application starts.
+
+  A new worktree gets an empty database. That is correct when the data is
+  rebuilt from the repo on boot, and useless when it got there by restoring a
+  dump - which is the reason teams abandon isolation and go back to one shared
+  database, where a migration on one branch breaks everyone else's.
+
+  A dump in one container piped straight into a restore in the other; nothing
+  lands on disk in between, so a database larger than the free space on the
+  machine still copies. Postgres, MySQL/MariaDB and Mongo are recognised by
+  image, and the credentials are read from the running container rather than
+  re-derived from the compose file, because `env_file`, `extends` and shell
+  interpolation have already been resolved there.
+
+  The two databases stay separate afterwards. Only the starting point is shared.
+
+- `[seed] from = "<worktree>"` in `worktree.toml`, to make that the default for
+  every `grove new`, and `--no-seed` to override it.
+
+- Interactively, `grove new` measures the source and offers the copy with the
+  size attached - the transfer dominates how long the command takes, and that is
+  the fact needed to answer. An agent is never prompted: `--json` without
+  `--seed-from` does not copy, because a question nobody is reading is a hang.
+
 ## 0.4.0
 
 Renamed, and made legible from outside a single worktree.

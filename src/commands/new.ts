@@ -17,6 +17,8 @@ import { c, fail, printJson, printManifest } from "../core/output.js";
 import { releaseLeases } from "../core/ports.js";
 import { unregister } from "../core/registry.js";
 import { readState } from "../core/worktrees.js";
+import { formatBytes } from "../core/seed.js";
+import { planSeed, seedDatabases, type SeedPlan, type SeedReport } from "./seed.js";
 import { up } from "./up.js";
 import type { Manifest } from "../types.js";
 
@@ -32,6 +34,10 @@ export interface NewOptions {
   build: boolean;
   services: string[];
   timeoutMs?: number;
+  /** Worktree to copy database contents from. Overrides `[seed] from`. */
+  seedFrom?: string;
+  /** Never copy, and never ask. */
+  noSeed: boolean;
 }
 
 /**
@@ -81,6 +87,10 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
     );
   }
 
+  // Before the worktree exists, so a bad --seed-from fails while there is still
+  // nothing to roll back, and so the question is asked before the waiting starts.
+  const plan = await resolveSeedPlan(here, main, opts);
+
   if (!opts.json) {
     console.log(
       c.dim(reuseBranch ? `checking out ${branch} in ${dest}` : `creating ${branch} from ${from} in ${dest}`),
@@ -98,6 +108,7 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
   // and blocks a retry with the same name.
   let hydration: HydrateResult | null = null;
   let manifest: Manifest | null = null;
+  let seed: SeedReport | null = null;
 
   try {
     // Establishing identity through the normal path rather than assuming our
@@ -122,6 +133,27 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
     }
 
     if (!opts.noUp) {
+      // Databases first when there is data to copy, so the copy lands before the
+      // application connects. An app that migrates on boot would otherwise race
+      // the restore, and the loser is whichever wrote second.
+      if (plan) {
+        const services = plan.pairs.map((pair) => pair.source.service);
+        if (!opts.json) console.log(c.dim(`starting ${services.join(", ")} first, to copy into`));
+        await up({
+          json: false,
+          quiet: true,
+          cwd: dest,
+          services,
+          build: opts.build,
+          noDeps: true,
+          ...(opts.timeoutMs ? { timeoutMs: opts.timeoutMs } : {}),
+        });
+        seed = await seedDatabases({ plan, targetRoot: dest, quiet: opts.json });
+        if (!seed.ok && !opts.json) {
+          console.error(c.yellow("warning: the data copy did not finish - see the report below"));
+        }
+      }
+
       manifest = await up({
         json: false,
         quiet: true,
@@ -166,6 +198,7 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
       base: from,
     },
     hydrate: hydration,
+    seed,
     manifest,
   };
 
@@ -173,12 +206,92 @@ export async function newWorktree(opts: NewOptions): Promise<void> {
     printJson(payload);
   } else {
     console.log();
+    if (seed) {
+      for (const db of seed.databases) {
+        if (db.copied) continue;
+        console.error(c.yellow(`  x ${db.service}: ${db.error ?? "not copied"}`));
+        for (const line of db.logs ?? []) console.error(c.dim(`    ${line}`));
+      }
+    }
     if (manifest) printManifest(manifest);
     else console.log(`${c.green("ok")} ${c.bold(payload.worktree.slug)} created at ${dest}`);
     console.log(c.dim(`  cd ${dest}`));
   }
 
   if (!payload.ok) process.exitCode = 1;
+}
+
+/**
+ * Decide whether to copy database contents into the new worktree, and from where.
+ *
+ * Three ways in, in order of authority: `--seed-from`, `[seed] from` in the
+ * config, and finally asking - but only a human, at a terminal. An agent runs
+ * `grove new --json` and cannot answer a prompt, so for it the absence of a
+ * configured source means "do not copy" rather than a hang.
+ */
+async function resolveSeedPlan(repo: string, main: string, opts: NewOptions): Promise<SeedPlan | null> {
+  if (opts.noSeed || opts.noUp) return null;
+
+  // A repo with no config at all fails later, with a better message than
+  // anything this step could produce.
+  const configured = await loadContext(repo)
+    .then((ctx) => ctx.config.seed.from)
+    .catch(() => null);
+
+  const selector = opts.seedFrom ?? configured;
+  const interactive = !opts.json && Boolean(process.stdin.isTTY) && Boolean(process.stdout.isTTY);
+  if (!selector && !interactive) return null;
+
+  let plan: SeedPlan | null = null;
+  try {
+    plan = await planSeed(selector ?? main, repo);
+  } catch (err) {
+    // Asked for by name and not found is an error. Falling back to the main
+    // worktree and finding nothing usable is not.
+    if (selector) {
+      fail(
+        {
+          ok: false,
+          error: `cannot copy data from "${selector}": ${(err as Error).message}`,
+          hint: "pass --no-seed to create the worktree without copying",
+        },
+        opts.json,
+      );
+    }
+    return null;
+  }
+
+  if (!plan || selector) return plan;
+  return (await confirmSeed(plan)) ? plan : null;
+}
+
+/**
+ * Offer the copy, with the two facts needed to answer.
+ *
+ * How big it is, because that is what the wait will be: the transfer dominates
+ * the time `grove new` takes, and a database of any size turns a ten-second
+ * command into a multi-minute one. And that declining is safe, because a stack
+ * that seeds itself from the repo needs none of this.
+ */
+async function confirmSeed(plan: SeedPlan): Promise<boolean> {
+  const { createInterface } = await import("node:readline/promises");
+
+  const what = plan.pairs
+    .map((pair) => `${pair.source.service} ${c.dim(`(${formatBytes(pair.size.bytes)})`)}`)
+    .join(", ");
+
+  console.log();
+  console.log(`${c.bold(plan.sourceLabel)} has data worth copying: ${what}`);
+  console.log(c.dim("The new worktree would start from the same data instead of an empty database."));
+  console.log(c.dim("The copy is what dominates how long this takes - expect minutes on a large one."));
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const answer = await rl.question(`Copy it? ${c.dim("[y/N]")} `);
+    return /^y(es)?$/i.test(answer.trim());
+  } finally {
+    rl.close();
+  }
 }
 
 /**

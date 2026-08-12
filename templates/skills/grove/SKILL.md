@@ -34,6 +34,30 @@ Options worth knowing: `--from <ref>` to branch from something other than the
 default, `--no-up` to create it without starting anything, `--path <dir>` to
 choose the location.
 
+## Starting from another worktree's data
+
+A new worktree gets an empty database. That is right when migrations and a seed
+script rebuild the data on boot, and wrong when the data came from a dump
+somebody restored by hand, which no new worktree can reproduce.
+
+    grove new feat/thing --seed-from main --json
+
+That copies the contents of every database in `main` into the new worktree,
+before the application starts. The two stay separate databases afterwards: a
+migration on one branch cannot reach the other.
+
+**Tell the user how long this will take before you run it.** The copy dominates
+everything else `grove new` does, and it scales with the size of the data, not
+with the size of the repo. A small database adds seconds; a few gigabytes turn a
+ten-second command into several minutes, and a `--timeout` that was generous
+without a copy may not be with one. Say which databases are being copied and
+roughly how large they are, so the wait is expected rather than alarming. The
+`seed` object in the JSON reports the byte count per database once it is done.
+
+Run it without `--seed-from` when you do not know whether the data matters: an
+agent is never prompted, so the default is simply not to copy. `--no-seed`
+suppresses it even when the repo configures a source in `[seed] from`.
+
 ## Running things
 
 `grove run <cmd...>` injects the worktree's environment and passes the child's exit

@@ -198,3 +198,25 @@ run = ["pnpm install --frozen-lockfile"]
     await rejects(MINIMAL + '\n[hooks]\non_session_end = "rm"\n', /must be "off" or "down"/);
   });
 });
+
+describe("[seed]", () => {
+  it("defaults to copying nothing, so a stack that seeds itself is never asked", async () => {
+    const config = await load(MINIMAL);
+    assert.equal(config.seed.from, null);
+  });
+
+  it("takes the worktree to copy from", async () => {
+    const config = await load(`${MINIMAL}\n[seed]\nfrom = "main"\n`);
+    assert.equal(config.seed.from, "main");
+  });
+
+  it("rejects an empty source rather than silently doing nothing", async () => {
+    // `from = ""` reads as "configured", so treating it as absent would leave
+    // someone waiting for a copy that was never going to happen.
+    await rejects(`${MINIMAL}\n[seed]\nfrom = ""\n`, /seed\.from is empty/);
+  });
+
+  it("rejects a misspelled key", async () => {
+    await rejects(`${MINIMAL}\n[seed]\nfrom_worktree = "main"\n`, /from_worktree/);
+  });
+});

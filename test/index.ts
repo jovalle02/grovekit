@@ -17,6 +17,7 @@ import "./unit/state.test.js";
 import "./unit/adapt.test.js";
 import "./unit/render.test.js";
 import "./unit/host-services.test.js";
+import "./unit/seed.test.js";
 import "./integration/lifecycle.test.js";
 import "./integration/host-process.test.js";
 import "./integration/stack.test.js";

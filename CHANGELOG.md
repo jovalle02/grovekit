@@ -4,6 +4,14 @@
 
 ### Fixed
 
+- **`bin` no longer survives publish as nothing at all.** Declared as
+  `"./dist/cli.js"`, npm's publish-time normalisation reported
+  `"bin[grove]" script name dist/cli.js was invalid and removed` and dropped the
+  entry, which would have put a `grovekit` on the registry that installs with no
+  `grove` command. It packs and installs correctly from a local tarball, so only
+  publishing surfaces it - and only as one warning in the middle of a hundred
+  lines of file listing. Dropping the `./` is the whole fix; two tests pin it.
+
 - **The generated Postgres healthcheck now asks over TCP.** `pg_isready` with no
   `-h` talks to the unix socket, and so does the temporary server the official
   image runs while `initdb` is still going. The check passed against that

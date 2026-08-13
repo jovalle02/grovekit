@@ -103,3 +103,34 @@ describe("formatBytes", () => {
   });
 });
 
+
+describe("the published package", () => {
+  it("declares a bin npm will not strip on publish", async () => {
+    // `"grove": "./dist/cli.js"` published *without a bin at all*: npm's
+    // publish-time normalisation reported `"bin[grove]" script name dist/cli.js
+    // was invalid and removed`, as a warning in the middle of a hundred lines of
+    // file listing. It installs fine from a local tarball, so nothing catches it
+    // short of installing what the registry actually served.
+    const { createRequire } = await import("node:module");
+    const require = createRequire(import.meta.url);
+    const pkg = require("../../package.json") as { bin: Record<string, string> };
+
+    const entries = Object.entries(pkg.bin);
+    assert.equal(entries.length, 1, "one binary, deliberately");
+
+    for (const [name, target] of entries) {
+      assert.doesNotMatch(target, /^\.\//, `bin.${name} must not start with "./"`);
+      assert.ok(!target.includes("\\"), `bin.${name} must use forward slashes`);
+    }
+  });
+
+  it("points its bin at a file the package actually ships", async () => {
+    const { createRequire } = await import("node:module");
+    const require = createRequire(import.meta.url);
+    const pkg = require("../../package.json") as { bin: Record<string, string>; files: string[] };
+
+    const [target] = Object.values(pkg.bin);
+    const top = (target ?? "").split("/")[0] ?? "";
+    assert.ok(pkg.files.includes(top), `"${top}" is not in the files list, so the bin would not ship`);
+  });
+});

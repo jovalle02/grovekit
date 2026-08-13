@@ -4,7 +4,7 @@
   "description": "A grove of git worktrees: every branch gets its own running stack, on its own ports.",
   "type": "module",
   "bin": {
-    "grove": "./dist/cli.js"
+    "grove": "dist/cli.js"
   },
   "exports": {
     ".": "./dist/index.js"

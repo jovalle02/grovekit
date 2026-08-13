@@ -111,7 +111,7 @@ export async function install(opts: InstallOptions): Promise<void> {
   }
   if (!resolved.verified) {
     console.log(
-      c.dim("  nothing on PATH is this package; hooks go through npx. `npm i -g grovekit` to fix."),
+      c.dim("  nothing on PATH is this package; hooks go through npx. `npm i -g grove-worktree` to fix."),
     );
   }
   console.log(c.dim(`next: \`/setup-grove\` in Claude Code, or \`${bin} adapt evidence\` by hand`));
@@ -163,7 +163,7 @@ function isOurHookCommand(command: string): boolean {
 
 /** Binaries this package used to install. Shipped no longer; still cleaned up. */
 const LEGACY_BIN_NAMES = ["git-grove", "ewt", "wt"];
-const LEGACY_PACKAGE_NAMES = ["easy-worktree", "git-grove"];
+const LEGACY_PACKAGE_NAMES = ["easy-worktree", "git-grove", "grovekit"];
 
 /** What this version writes. Never a deletion candidate - see `removeLegacy`. */
 const CURRENT_ARTIFACTS = [
@@ -284,7 +284,7 @@ async function appendAgents(file: string, force: boolean): Promise<Written> {
 ${AGENTS_MARKER}
 ## Worktree stacks
 
-This repo uses \`grove\` (grovekit): every git worktree runs its own full stack
+This repo uses \`grove\` (grove-worktree): every git worktree runs its own full stack
 with its own URLs and its own database.
 
 - Read \`.wt/manifest.json\` for URLs and per-service status. Every command takes

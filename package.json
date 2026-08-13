@@ -1,5 +1,5 @@
 {
-  "name": "grovekit",
+  "name": "grove-worktree",
   "version": "0.5.0",
   "description": "A grove of git worktrees: every branch gets its own running stack, on its own ports.",
   "type": "module",

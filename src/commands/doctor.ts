@@ -67,8 +67,8 @@ export async function doctor(opts: DoctorOptions): Promise<void> {
     hint: bin.verified
       ? undefined
       : bin.shadowedBy
-        ? `${bin.shadowedBy} has the name but is a different program. Put this one earlier on PATH, or run \`npm i -g grovekit\`.`
-        : "run `npm i -g grovekit`, or invoke it as `npx grovekit`",
+        ? `${bin.shadowedBy} has the name but is a different program. Put this one earlier on PATH, or run \`npm i -g grove-worktree\`.`
+        : "run `npm i -g grove-worktree`, or invoke it as `npx grove-worktree`",
   });
 
   let ctxOk = false;

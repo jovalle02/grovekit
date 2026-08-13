@@ -1,4 +1,4 @@
-# grovekit - design notes
+# grove-worktree - design notes
 
 Read this before changing anything load-bearing. It carries the design
 rationale, what is built and proven, what is missing, and every trap that has

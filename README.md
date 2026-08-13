@@ -75,10 +75,12 @@ through a config file or the environment. See
 ## Install
 
 ```bash
-npm install -g grovekit
+npm install -g grove-worktree
 ```
 
-One binary: `grove`.
+The package is `grove-worktree`; the command is `grove`. One binary,
+deliberately - every alias is another thing that can be shadowed on someone's
+PATH.
 
 ## Quick start
 

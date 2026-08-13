@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { execSafe } from "./exec.js";
 
-export const PACKAGE_NAME = "grovekit";
+export const PACKAGE_NAME = "grove-worktree";
 
 /**
  * The command, and the only binary this package installs.

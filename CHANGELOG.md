@@ -2,6 +2,16 @@
 
 ## 0.5.0
 
+### Changed
+
+- **The npm package is `grove-worktree`.** `grovekit` cannot be published: npm's
+  name check strips punctuation before comparing, so it collides with the
+  existing `grove-kit`, and plain `grove` has been taken since 2022. The command
+  is still `grove`, the repository is still `grovekit`, and nothing on disk
+  changes - only the string you type once to install it. `grove install` knows
+  the old name, so a hook written by a `grovekit` build is recognised and
+  replaced rather than left behind next to the new one.
+
 ### Fixed
 
 - **Leasing and the port guard now ask the same question.** Leasing asked "can I

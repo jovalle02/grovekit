@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.6.0
+
+### Changed
+
+- **Setup is finished when two worktrees serve, not when one stack boots.** Its
+  old success signal was `grove up` exiting 0 - which is single-worktree
+  success, the state a repo is already in before grove exists. A repo where
+  seven services quietly ignored their leases could pass setup and fail days
+  later, the first time someone wanted a second worktree. `/setup-grove` now
+  ends by running two at once and checking that each serves a real endpoint as
+  itself, and reports the result first.
+
+- **Discovery fans out across six axes.** Launch profiles, bind sites, dev
+  servers and their proxy targets, build-time bakes, orchestrators, and the
+  hardcoded addresses in clients and tests that dial them. That last one is
+  what survives a green boot: every server can take its lease and the stack
+  still breaks because a client kept the old number. Each finding carries a
+  verdict on whether grove can move the port at all - at runtime, only at build
+  time, or not without a source change.
+
+  Synthesis stays single-threaded. Grouping findings by key is what catches two
+  projects reading one variable name, and no agent holding a single service can
+  see that.
+
+- **Reading yields a candidate, never a verdict.** Nothing may claim a port
+  works until the live listener audit has run. Source tells you a process
+  intends to read a config key; only the listener list tells you whether it
+  did. The audit also distinguishes "ignored its lease" from "never started",
+  which need opposite fixes and previously looked identical.
+
+- **A port only you can move stops the run.** When a port turns out to be a
+  literal in code, setup reports it as blocked and asks, rather than finishing
+  with a summary that reads as success. Source changes stay the user's call.
+
+- **The skill ships reference alongside `SKILL.md`.** `discovery.md`,
+  `config.md` and `verify.md` land in `.claude/skills/grove/`, so `grove
+  install` now copies the directory rather than the entry point alone. Existing
+  repos keep what they have until `grove install --force`; `worktree.toml` is
+  never touched.
+
+### Fixed
+
+- **A stack stuck at `starting` is now diagnosed instead of waited on.** A
+  parent process stays alive when its child crashes, so a dead stack and a slow
+  build look identical. Setup stops at the timeout, reads the orchestrator's
+  per-child logs, and reports - rather than waiting a second time on a
+  condition that will not change.
+
 ## 0.5.0
 
 ### Changed

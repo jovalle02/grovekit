@@ -2,6 +2,7 @@ import net from "node:net";
 import { compose, composeLogs, type ComposePs } from "./compose.js";
 import { internalUrl, serviceUrl, type Context } from "./context.js";
 import { sleep } from "./exec.js";
+import { tcpReachable } from "./net.js";
 import { isAlive, readProcesses, tailLog } from "./processes.js";
 import type { ServiceConfig, ServiceStatus } from "../types.js";
 
@@ -276,23 +277,6 @@ async function probe(ctx: Context, svc: RuntimeService): Promise<boolean> {
  * to `::1` first on Windows, so anything started through a URL rather than an
  * explicit bind address is likely to land there.
  */
-export function tcpReachable(port: number): Promise<boolean> {
-  return Promise.all([connectTo(port, "127.0.0.1"), connectTo(port, "::1")]).then((r) =>
-    r.some(Boolean),
-  );
-}
 
-function connectTo(port: number, host: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const socket = new net.Socket();
-    const done = (ok: boolean) => {
-      socket.destroy();
-      resolve(ok);
-    };
-    socket.setTimeout(PROBE_TIMEOUT_MS);
-    socket.once("connect", () => done(true));
-    socket.once("timeout", () => done(false));
-    socket.once("error", () => done(false));
-    socket.connect(port, host);
-  });
-}
+/** Re-exported: callers ask health about reachability, but the probe is shared with leasing. */
+export { tcpReachable };

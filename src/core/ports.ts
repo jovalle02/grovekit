@@ -1,6 +1,7 @@
 import net from "node:net";
 import { createHash } from "node:crypto";
 import { execSafe as exec } from "./exec.js";
+import { isPortFree } from "./net.js";
 import { readJson, withLock, writeJson } from "./lock.js";
 import { leasesFile } from "./paths.js";
 
@@ -14,14 +15,6 @@ type Leases = Record<string, number>;
  * port, and it is strictly stronger: a loopback-only probe happily succeeds on a
  * port already held on another interface, and then `docker compose up` fails.
  */
-export function isPortFree(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const srv = net.createServer();
-    srv.once("error", () => resolve(false));
-    srv.once("listening", () => srv.close(() => resolve(true)));
-    srv.listen(port, "0.0.0.0");
-  });
-}
 
 /**
  * Lease a stable host port for `<slug>/<service>`.

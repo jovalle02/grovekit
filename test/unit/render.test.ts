@@ -164,3 +164,44 @@ describe("tcpReachable", () => {
     }
   });
 });
+
+describe("isPortFree agrees with tcpReachable", () => {
+  // These two answer the same question from opposite sides, and they disagreed:
+  // leasing asked "can I bind 0.0.0.0" while the guard in `up` asked "does
+  // anything answer on loopback". A worktree was handed a port an orphan was
+  // already listening on, and then told the port was in use by a stranger - both
+  // steps of the tool, one contradicting the other in the same command.
+  const listenOn = async (host: string) => {
+    const net = await import("node:net");
+    const server = net.createServer();
+    const port = await new Promise<number>((resolve) => {
+      server.listen(0, host, () => {
+        const address = server.address();
+        resolve(typeof address === "object" && address ? address.port : 0);
+      });
+    });
+    return { server, port };
+  };
+
+  for (const host of ["127.0.0.1", "::1", "0.0.0.0"]) {
+    it(`calls a port busy when something listens on ${host}`, async () => {
+      const { isPortFree, tcpReachable } = await import("../../src/core/net.js");
+      const { server, port } = await listenOn(host);
+
+      try {
+        assert.equal(await tcpReachable(port), true, "the guard sees it");
+        assert.equal(await isPortFree(port), false, "so leasing must not hand it out");
+      } finally {
+        server.close();
+      }
+    });
+  }
+
+  it("still calls an unused port free", async () => {
+    const { isPortFree } = await import("../../src/core/net.js");
+    const { server, port } = await listenOn("127.0.0.1");
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+
+    assert.equal(await isPortFree(port), true);
+  });
+});

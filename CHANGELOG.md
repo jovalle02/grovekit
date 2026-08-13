@@ -4,6 +4,18 @@
 
 ### Fixed
 
+- **Leasing and the port guard now ask the same question.** Leasing asked "can I
+  bind 0.0.0.0?"; the guard in `up` asked "does anything answer on loopback?".
+  On Windows the first succeeds while a process holds `127.0.0.1` or `::1`, so
+  `grove new` could lease a port something was already listening on and then, one
+  step later in the same command, refuse to start and tell the user to hunt an
+  orphan it had just walked into itself.
+
+  Both probes now live in one module and leasing takes the strictest reading:
+  bindable on both wildcard addresses *and* nothing answering on either loopback.
+  Being cautious costs one port out of four thousand; being wrong the other way
+  hands a worktree an address that is already somebody's.
+
 - **`bin` no longer survives publish as nothing at all.** Declared as
   `"./dist/cli.js"`, npm's publish-time normalisation reported
   `"bin[grove]" script name dist/cli.js was invalid and removed` and dropped the

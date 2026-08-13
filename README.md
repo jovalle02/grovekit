@@ -1,17 +1,11 @@
 <p align="center">
-  <img src="assets/logo.png" alt="grovekit" width="420">
+  <img src="assets/grovekit-logo.png" alt="grovekit" width="420">
 </p>
 
 <p align="center">
   <b>Every git worktree gets its own running stack, on its own ports.</b><br>
   Work on three branches at once. Nothing collides. Nothing is configured twice.
 </p>
-
-```bash
-grove new feat/login       # branch + worktree + deps + ports + running
-grove run pnpm test:e2e    # BASE_URL, API_URL, DATABASE_URL injected
-grove rm feat-login        # worktree, containers, volumes, ports - all of it
-```
 
 ---
 
@@ -95,12 +89,17 @@ Then, in Claude Code:
 /setup-grove
 ```
 
-The agent reads your repo, works out what the services are and which ports are
-pinned, writes `worktree.toml`, boots it, and reports back. It asks you exactly
-one thing it cannot work out from the code: if it finds a database with data in
-it, whether a new worktree should start from a copy of that data. You review the
-diff and commit it - **to your default branch**, since a worktree inherits its
-branch's files.
+The agent fans out to read your repo - launch profiles, bind sites, dev-server
+proxies, build-time bakes, orchestrators, hardcoded addresses in clients and
+tests - writes `worktree.toml`, boots it, and then checks what each process
+*actually* bound rather than trusting the config. It finishes by running two
+worktrees at once, because one working stack proves nothing.
+
+It stops and asks you twice, on the two things the code cannot answer: whether
+to make a source change, when a port is a literal only you can move; and whether
+a new worktree should start from a copy of your data, if it finds a database
+with any. You review the diff and commit it - **to your default branch**, since
+a worktree inherits its branch's files.
 
 After that, day to day:
 
@@ -110,6 +109,12 @@ cd ../your-repo-feat-thing
 ```
 
 Open a second terminal, do the same for another branch, and both run at once.
+
+**Or just ask your agent.** The skill `grove install` wrote is the whole
+interface - "spin up two worktrees, one for the checkout bug and one for the
+search rewrite, and run the e2e suite against both" is a complete instruction.
+It creates them, starts both stacks, and reads each one's URLs out of its own
+manifest, so nothing you say has to mention a port.
 
 ## Commands
 
@@ -383,7 +388,10 @@ repair it. That distinction is the whole reason partial startup is safe.
 
 `grove install` writes:
 
-- `.claude/skills/grove/SKILL.md` - the daily-use skill
+- `.claude/skills/grove/` - the daily-use skill, plus the reference the migration
+  reads: `discovery.md` (finding every port and whether grove can move it),
+  `config.md` (writing `worktree.toml`), `verify.md` (the listener audit and the
+  two-worktree test)
 - `.claude/commands/setup-grove.md` - the `/setup-grove` migration command
 - `SessionStart` / `SessionEnd` hooks, **merged** into `.claude/settings.json`
   rather than overwriting it

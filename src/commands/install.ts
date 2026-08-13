@@ -52,12 +52,15 @@ export async function install(opts: InstallOptions): Promise<void> {
   const resolved = await resolveBin();
   const bin = resolved.command;
 
+  // The whole directory, not just SKILL.md: the skill ships reference siblings
+  // (discovery, config, verify) that the setup command and the skill point at.
+  // A pointer to a file that was never copied is a dead end nothing reports.
   written.push(
-    await copyTemplate(
-      path.join(templatesDir(), "skills", "grove", "SKILL.md"),
-      path.join(root, ".claude", "skills", "grove", "SKILL.md"),
+    ...(await copyTemplateDir(
+      path.join(templatesDir(), "skills", "grove"),
+      path.join(root, ".claude", "skills", "grove"),
       opts.force,
-    ),
+    )),
   );
 
   written.push(
@@ -114,6 +117,9 @@ export async function install(opts: InstallOptions): Promise<void> {
       c.dim("  nothing on PATH is this package; hooks go through npx. `npm i -g grove-worktree` to fix."),
     );
   }
+  console.log();
+  console.log("setup targets several worktrees serving at once - one working stack is not the goal.");
+  console.log(c.dim("  expect it to stop and ask when a port is hardcoded somewhere only you can change."));
   console.log(c.dim(`next: \`/setup-grove\` in Claude Code, or \`${bin} adapt evidence\` by hand`));
 
   // Non-zero when anything was left alone, so a caller learns the install was
@@ -138,6 +144,21 @@ async function copyTemplate(from: string, to: string, force: boolean): Promise<W
   await fs.mkdir(path.dirname(to), { recursive: true });
   await fs.writeFile(to, content, "utf8");
   return { file: to, action: current === null ? "created" : "updated" };
+}
+
+/** Every file under a template directory, sorted so the report is stable. */
+async function copyTemplateDir(from: string, to: string, force: boolean): Promise<Written[]> {
+  const entries = await fs.readdir(from, { withFileTypes: true }).catch(() => null);
+  if (entries === null) return [{ file: to, action: "skipped", reason: "template missing" }];
+
+  const out: Written[] = [];
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    const src = path.join(from, entry.name);
+    const dst = path.join(to, entry.name);
+    if (entry.isDirectory()) out.push(...(await copyTemplateDir(src, dst, force)));
+    else out.push(await copyTemplate(src, dst, force));
+  }
+  return out;
 }
 
 type HookEntry = { matcher?: string; hooks: { type: string; command: string }[] };

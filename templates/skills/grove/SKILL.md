@@ -6,6 +6,19 @@ description: Create, run, test, or inspect isolated stacks per git worktree. Use
 Every worktree in this repo runs its own full stack - own database, own URLs,
 nothing shared with any other worktree. All commands accept `--json`; prefer it.
 
+## Several are running at once
+
+That is the point of this tool, and it changes two habits.
+
+**Ports and URLs are per-worktree.** Read them from `.wt/manifest.json` or the
+environment every time. A port that was right in one worktree is another
+worktree's in the next, so a hardcoded one does not merely break - it reaches
+someone else's stack and appears to work.
+
+**A process on a port you did not lease belongs to somebody.** `grove ls --all
+--json` says whose. Leave it alone: stopping it takes down a stack somebody is
+using, and `grove down` on your own worktree cannot reach it anyway.
+
 ## Where am I
 
 Read `.wt/manifest.json`. It is always at the worktree root, so the relative path
@@ -139,3 +152,21 @@ read the Docker socket. Run it first when something is inexplicably unreachable.
 
 If a fresh worktree is missing config or dependencies, `grove hydrate` re-copies
 them from the main worktree.
+
+**A service reported `not running` while the app still works** is bound to a
+hardcoded port instead of its lease. It works today because you have one
+worktree up, and collides the moment you start a second. That is a config bug -
+report it rather than routing around it, and never free the port by killing what
+holds it.
+
+**A stack stuck at `starting` with no error** is usually a crashed child under a
+parent that stayed alive. The stuck protocol in [`verify.md`](verify.md) says
+where the child's own logs are.
+
+Three references, for when the port wiring itself needs work:
+
+- [`discovery.md`](discovery.md) - finding every port and whether grove can move it
+- [`config.md`](config.md) - writing `worktree.toml`, and the collisions to check
+- [`verify.md`](verify.md) - the listener audit, the two-worktree test, the stuck protocol
+
+Re-running `/setup-grove` redoes all of it.
